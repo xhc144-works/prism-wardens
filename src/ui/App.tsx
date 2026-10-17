@@ -7,6 +7,13 @@ import { DeckScreen } from './screens/Deck';
 import { BattleScreen } from './screens/Battle';
 import { CheatsScreen } from './screens/Cheats';
 import { SCREENS } from './screens/registry';
+import './screens/Info';
+import './screens/Settings';
+import './screens/AiLab';
+import './screens/Challenges';
+import './screens/Editor';
+import './screens/UnitEditor';
+import './screens/Replays';
 
 function renderRoute(r: Route) {
   switch (r.name) {

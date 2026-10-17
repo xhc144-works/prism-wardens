@@ -42,7 +42,7 @@ export type Route =
   | { name: 'settings' }
   | { name: 'saves' }
   | { name: 'cheats' }
-  | { name: 'ai'; tab?: string }
+  | { name: 'ai'; tab?: string; target?: string }
   | { name: 'challenges' }
   | { name: 'ruleEditor'; rule?: RuleSet }
   | { name: 'editor'; levelId?: string }

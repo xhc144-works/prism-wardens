@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 
 /** 分类调色板（已用 dataviz 校验器在深色面板 #161e40 上验证通过） */
 export const SERIES = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'];
@@ -21,7 +21,15 @@ const fmt = (v: number) => (Math.abs(v) >= 10000 ? `${(v / 1000).toFixed(0)}k` :
 export function LineChart(props: { series: Series[]; height?: number; xLabel?: string; yLabel?: string; colors?: string[] }) {
   const { series } = props;
   const H = props.height ?? 200;
-  const W = 560;
+  const box = useRef<HTMLDivElement>(null);
+  const [W, setW] = useState(560);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setW(Math.max(240, Math.floor(el.clientWidth))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const pad = { l: 44, r: 70, t: 12, b: 26 };
   const [hover, setHover] = useState<number | null>(null);
   const [table, setTable] = useState(false);
@@ -66,7 +74,7 @@ export function LineChart(props: { series: Series[]; height?: number; xLabel?: s
       </div>
     );
   return (
-    <div class="chart" style={{ position: 'relative' }}>
+    <div class="chart" style={{ position: 'relative' }} ref={box}>
       <div class="row" style={{ justifyContent: 'space-between', marginBottom: 4 }}>
         {series.length >= 2 ? (
           <div class="row" style={{ gap: 12, fontSize: 12 }}>
@@ -82,7 +90,7 @@ export function LineChart(props: { series: Series[]; height?: number; xLabel?: s
         )}
         <button class="btn small ghost" onClick={() => setTable(true)}>表格视图</button>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }} onMouseLeave={() => setHover(null)} onMouseMove={(e) => {
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: 'block' }} onMouseLeave={() => setHover(null)} onMouseMove={(e) => {
         const r = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
         const px = ((e.clientX - r.left) / r.width) * W;
         setHover(xMin + ((px - pad.l) / (W - pad.l - pad.r)) * (xMax - xMin));
