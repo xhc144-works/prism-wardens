@@ -138,7 +138,9 @@ export class AIAgent {
       const affordable = cands.filter((c) => c.cost <= w.lumen || w.cheats?.infiniteLumen);
       const best = affordable[0];
       const bestAny = cands[0];
-      if (bestAny && bestAny !== best && bestAny.score > (best?.score ?? 0) + 22 && bestAny.score >= threshold && !bestAny.emergency) {
+      // 有行处于无防守状态时绝不攒钱：先用买得起的单位补上
+      const exposed = this.exposedLanes(w, obs);
+      if (!exposed.length && bestAny && bestAny !== best && bestAny.score > (best?.score ?? 0) + 22 && bestAny.score >= threshold && !bestAny.emergency) {
         saving = bestAny.label;
         // 仍允许执行便宜且非常紧急的行动
         if (!best || !best.emergency) break;
@@ -329,6 +331,19 @@ export class AIAgent {
     return Math.max(base, current) * noSentinel;
   }
 
+  /** 有敌人逼近但火力明显不足（< 30% 需求）的行 */
+  exposedLanes(w: World, obs: Observation): LaneInfo[] {
+    return obs.lanes.filter((l) => {
+      const ground = l.enemies.some((e) => !e.flying && !e.burrowed && !e.behind);
+      const air = l.enemies.some((e) => e.flying);
+      if (!ground && !air) return false;
+      const need = Math.max(8, this.laneNeed(w, obs, l));
+      if (ground && l.dps < need * 0.3) return true;
+      if (air && l.airDps < 4) return true;
+      return false;
+    });
+  }
+
   private isEmergency(l: LaneInfo): boolean {
     if (!l.enemies.length) return false;
     if (l.nearestX < 1.6 && !l.sentinel) return true;
@@ -419,6 +434,20 @@ export class AIAgent {
       this.skillCandidates(w, obs, out, emergencyLanes);
       this.itemCandidates(w, obs, out, emergencyLanes);
     }
+    // 优先补上无防守的行
+    const exposed = new Set(this.exposedLanes(w, obs).map((l) => l.row));
+    if (exposed.size) {
+      for (const c of out) {
+        if (c.cmd.type !== 'place' || (c.kind !== 'attack' && c.kind !== 'plate' && c.kind !== 'wall' && c.kind !== 'melee')) continue;
+        const def = CONTENT.units.get(c.kind === 'plate' && c.then ? c.then.card : c.cmd.card);
+        if (!def) continue;
+        const rows = def.behavior === 'shooter' ? (def.lanes ?? [0]).map((l) => c.cmd.type === 'place' ? c.cmd.row + l : -1) : [c.cmd.row];
+        if (rows.some((r) => exposed.has(r))) {
+          c.score += c.kind === 'wall' ? 15 : 35;
+          c.reasons.push('该行有敌人但几乎没有火力，优先补防');
+        }
+      }
+    }
     // 限制：规则下的有效性最终由 issue() 再次校验
     for (const c of out) {
       const bias = c.cmd.type === 'place' ? this.bias[c.cmd.card] ?? 0 : 0;
@@ -488,8 +517,9 @@ export class AIAgent {
       const need = this.laneNeed(w, obs, lane);
       const deficit = Math.max(0, need - lane.dps);
       let fit = 1;
-      const hasFly = lane.flyers > 0 || (obs.levelPool.some((e) => e.flying) && lane.airDps < 1 && obs.wave >= 2);
-      if (hasFly && (d.antiAir || d.behavior === 'chain')) fit += lane.airDps < 1 ? 1.6 : 0.3;
+      const flyNow = lane.flyers > 0;
+      const hasFly = flyNow || (obs.levelPool.some((e) => e.flying) && lane.airDps < 1 && obs.wave >= 2);
+      if (hasFly && (d.antiAir || d.behavior === 'chain')) fit += flyNow ? (lane.airDps < 1 ? 1.6 : 0.3) : 0.6;
       if (lane.shields > 0 && d.behavior === 'lobber') fit += 0.6;
       if (lane.shields > 0 && d.behavior === 'shooter' && !d.pierce) fit -= 0.2;
       if (d.slow && lane.enemies.length >= 2) fit += 0.15;

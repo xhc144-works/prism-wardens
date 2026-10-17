@@ -11,7 +11,8 @@
  *   npm run sim -- --endless day --strategy economy --runs 3
  *   npm run sim -- --json out.json ...
  */
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { CONTENT } from '../src/core/content/registry';
 import { LEVELS, makeEndlessLevel, makeSurvivalLevel } from '../src/core/content/levels';
 import { BUILTIN_CHALLENGES } from '../src/core/content/challenges';
@@ -118,4 +119,7 @@ if (flag('coach')) {
 }
 
 console.log(`\n耗时 ${((Date.now() - t0) / 1000).toFixed(1)}s`);
-if (json) writeFileSync(json, JSON.stringify(results, null, 2));
+if (json) {
+  mkdirSync(dirname(json), { recursive: true });
+  writeFileSync(json, JSON.stringify(results, null, 2));
+}
