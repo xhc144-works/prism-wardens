@@ -147,7 +147,8 @@ export function updateEnemies(w: World): void {
         e.x -= speed * DT;
         if (e.x <= 0.45) {
           e.state = 'emerge';
-          e.stateT = 1;
+          e.stateT = 2.5; // 钻出地面后晕眩片刻
+          e.burrowed = false;
         }
         break;
       case 'emerge':
@@ -163,7 +164,7 @@ export function updateEnemies(w: World): void {
         let near = false;
         for (let c = 0; c < w.cols; c++) {
           const u = pickBlockUnit(w, e.row, c);
-          if (u && e.x - (c + 1) < 1.1 && e.x > c + 0.4) near = true;
+          if (u && e.x - (c + 1) < 2.2 && e.x > c + 0.4) near = true;
         }
         if (near || e.x < 1.2) {
           e.submerged = false;
@@ -255,8 +256,11 @@ export function updateEnemies(w: World): void {
           }
           if (e.def.crusher && e.def.vehicle) {
             w.emit({ t: 'bite', row: blocker.row, col: blocker.col });
+            const wasAlive = !blocker.dead;
             w.damageUnit(blocker, 99999, e.def.id);
-            e.x += e.dir * speed * DT;
+            // 蚀能球每碾碎一个守卫都会消耗自身能量
+            if (e.def.id === 'blight_orb' && wasAlive && blocker.dead) w.damageEnemy(e, 120, '__crush');
+            if (!e.dead) e.x += e.dir * speed * DT;
             break;
           }
           if (e.def.crusher) {

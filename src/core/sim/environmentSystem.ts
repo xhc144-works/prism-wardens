@@ -32,8 +32,12 @@ export function initEnvironment(w: World): void {
 function skyEnabled(w: World): boolean {
   if (w.rules?.c.noSkyDrops) return false;
   if (w.level.skyDrops === false) return false;
-  if (w.level.skyDrops === undefined && w.level.time === 'night') return false;
   return w.weather.skyMul > 0;
+}
+
+/** 夜晚没有阳光，只有稀疏的“月华”光球 */
+export function isMoonlight(w: World): boolean {
+  return w.level.time === 'night' && w.level.skyDrops === undefined;
 }
 
 function triggerEvent(w: World, id: string): void {
@@ -119,11 +123,12 @@ export function updateEnvironment(w: World): void {
     if (w.activeEvents.some((e) => e.id === 'lumen_surge')) mul *= 3;
     w.skyTimer -= DT * mul;
     if (w.skyTimer <= 0) {
-      const [a, b] = w.level.skyInterval ?? [8.5, 11.5];
+      const moon = isMoonlight(w);
+      const [a, b] = w.level.skyInterval ?? (moon ? [13, 17] : [8.5, 11.5]);
       w.skyTimer = w.rng.range(a, b);
       const x = 0.4 + w.rng.next() * (w.cols - 1.3);
       const y = w.rng.next() * (w.rows - 1) + 0.2;
-      w.spawnOrb(SKY_DROP_VALUE, x, y, 'sky', -0.8);
+      w.spawnOrb(moon ? 15 : SKY_DROP_VALUE, x, y, 'sky', -0.8);
     }
   }
 

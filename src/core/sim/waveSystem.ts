@@ -10,6 +10,8 @@ export function generateWave(i: number, gen: WaveGen, rng: Rng, hasWater: boolea
   const isLast = !endless && num === gen.count;
   const flag = (gen.flagEvery > 0 && num % gen.flagEvery === 0) || isLast;
   let budget = (gen.base + gen.growth * i) * (flag ? gen.flagMul ?? 2.4 : 1);
+  // 开局爬坡：前几波明显更轻，给玩家建立经济的时间
+  if (!flag || num <= 3) budget *= num === 1 ? 0.45 : num === 2 ? 0.65 : num === 3 ? 0.85 : 1;
   if (endless && i > 30) budget *= 1 + (i - 30) * 0.035;
   const progress = endless ? Math.min(1, i / 40) : gen.count > 1 ? i / (gen.count - 1) : 1;
   const pool: EnemyDef[] = [];
@@ -56,7 +58,7 @@ export function initWaves(w: World): void {
   } else {
     w.totalWaves = 0;
   }
-  w.waveTimer = L.firstWaveDelay ?? 20;
+  w.waveTimer = L.firstWaveDelay ?? 25;
   if (w.config.mode === 'survival') w.roundSize = 10;
 }
 

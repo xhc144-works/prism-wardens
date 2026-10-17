@@ -341,8 +341,8 @@ export class World {
   /* ============================ 指令 ============================ */
 
   /** 校验一条指令是否合法（不执行、不计入统计）。AI 用它规划合法行动。 */
-  validate(cmd: Command, src: CommandSource = 'human'): CommandResult {
-    const r = this.validateGame(cmd, src);
+  validate(cmd: Command, src: CommandSource = 'human', opts: { ignoreCost?: boolean } = {}): CommandResult {
+    const r = this.validateGame(cmd, src, opts.ignoreCost);
     if (!r.ok) return r;
     if (this.rules && src !== 'system') {
       const rr = this.rules.validateCommand(cmd, this);
@@ -370,7 +370,7 @@ export class World {
     return cmd.type === 'cheats' || cmd.type === 'setLumen' || cmd.type === 'spawn' || cmd.type === 'killAll';
   }
 
-  validateGame(cmd: Command, src: CommandSource): CommandResult {
+  validateGame(cmd: Command, src: CommandSource, ignoreCost = false): CommandResult {
     if (this.status === 'won' || this.status === 'lost') return { ok: false, reason: '对局已结束' };
     if (this.isCheatCmd(cmd)) {
       if (!this.cheatsAllowed) return { ok: false, reason: '挑战模式下修改器已被禁用', rule: true };
@@ -380,7 +380,7 @@ export class World {
     if (this.status === 'intermission' && cmd.type !== 'reselect' && cmd.type !== 'collect') return { ok: false, reason: '轮间休整中，请先重新选择卡组' };
     switch (cmd.type) {
       case 'place':
-        return this.canPlace(cmd.card, cmd.row, cmd.col);
+        return this.canPlace(cmd.card, cmd.row, cmd.col, ignoreCost);
       case 'remove': {
         const u = this.unitAt(cmd.row, cmd.col) ?? this.plateAt(cmd.row, cmd.col);
         if (!u || u.relic) return { ok: false, reason: '这里没有可移除的单位' };
@@ -394,7 +394,7 @@ export class World {
         if (u.rank >= 3) return { ok: false, reason: '已达最高星级' };
         if (u.def.instant || u.def.behavior === 'plate') return { ok: false, reason: '该单位不能强化' };
         const cost = this.upgradeCost(u);
-        if (this.lumen < cost && !this.cheats?.infiniteLumen) return { ok: false, reason: `光能不足（需要 ${cost}）` };
+        if (this.lumen < cost && !this.cheats?.infiniteLumen && !ignoreCost) return { ok: false, reason: `光能不足（需要 ${cost}）` };
         return { ok: true };
       }
       case 'skill': {
@@ -425,13 +425,13 @@ export class World {
     }
   }
 
-  canPlace(cardId: string, row: number, col: number): CommandResult {
+  canPlace(cardId: string, row: number, col: number, ignoreCost = false): CommandResult {
     const card = this.deck.find((d) => d.id === cardId);
     if (!card) return { ok: false, reason: '卡组中没有这张卡' };
     if (!this.inBounds(row, col)) return { ok: false, reason: '超出战场' };
     if (card.cooldown > 0) return { ok: false, reason: '卡牌冷却中' };
     const cost = this.cardCost(card.def);
-    if (this.lumen < cost && !this.cheats?.infiniteLumen) return { ok: false, reason: '光能不足' };
+    if (this.lumen < cost && !this.cheats?.infiniteLumen && !ignoreCost) return { ok: false, reason: '光能不足' };
     return this.canPlaceDef(card.def, row, col);
   }
 

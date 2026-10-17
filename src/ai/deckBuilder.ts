@@ -35,6 +35,7 @@ export interface LevelFeatures {
   tanks: boolean;
   boss: boolean;
   swarm: boolean;
+  divers: boolean;
 }
 
 export function levelFeatures(level: LevelDef): LevelFeatures {
@@ -57,6 +58,7 @@ export function levelFeatures(level: LevelDef): LevelFeatures {
     tanks: pool.some((e) => e.hp + (e.armor?.hp ?? 0) >= 1200),
     boss: pool.some((e) => !!e.boss),
     swarm: (level.gen?.growth ?? 1) >= 1.3,
+    divers: pool.some((e) => e.swim),
   };
 }
 
@@ -167,7 +169,7 @@ export function scoreCard(d: UnitDef, f: LevelFeatures, s: StrategyParams, size:
       why = f.water ? '水路必备' : '无水面';
       break;
     case 'tide_lurker':
-      sc = f.water ? 34 : -100;
+      sc = f.water ? 34 + (f.divers ? 28 : 0) : -100;
       why = '水路秒杀';
       break;
     case 'lantern_crystal':
@@ -240,19 +242,34 @@ export function buildDeck(req: DeckRequest): DeckResult {
   };
   if (f.water) need((d) => d.behavior === 'plate', '水路必备浮台');
   need((d) => d.behavior === 'producer', '经济来源');
-  need(isAttacker, '主力输出');
+  need((d) => (d.behavior === 'shooter' || d.behavior === 'chain') && d.cost <= 125 && (!d.solar || f.night) && !d.back, '廉价主力输出');
+  need((d) => d.behavior === 'shooter' || d.behavior === 'chain', '主力输出');
   if (f.flyers) need((d) => !!d.antiAir || d.behavior === 'gale', '对空能力');
+  if (f.flyers && maxSize >= 8) need((d) => d.behavior === 'gale', '一次清除所有飞行敌人');
   if (maxSize >= 4) need((d) => isAttacker(d) && !deck.includes(d.id), '第二输出');
+  if (maxSize >= 5) need((d) => d.category === 'wall', '屏障拖延敌人');
+  if (maxSize >= 6) need((d) => d.behavior === 'instantBomb' || d.behavior === 'laneBomb', '应急爆破');
+  if (maxSize >= 7 && f.burrowers) need((d) => !!d.back, '防御背后的掘地者');
+  if (maxSize >= 7 && (f.fog || f.stealth)) need((d) => d.behavior === 'lantern', '照亮迷雾/隐身');
+  if (maxSize >= 7 && f.vehicles) need((d) => d.behavior === 'spike', '刺破载具');
 
   const count = (pred: (d: UnitDef) => boolean) => deck.filter((id) => pred(CONTENT.unit(id))).length;
+  const nonAttackSlots = Math.min(3, maxSize - 2);
   for (const x of scored) {
     if (deck.length >= maxSize) break;
     if (deck.includes(x.d.id)) continue;
+    if (isAttacker(x.d) && count(isAttacker) >= maxSize - nonAttackSlots) continue;
+    if (x.d.category === 'lobber' && count((d) => d.category === 'lobber') >= (f.shields && maxSize >= 9 ? 2 : 1)) continue;
     if (x.d.category === 'wall' && count((d) => d.category === 'wall') >= 1 && maxSize < 9) continue;
     if (x.d.category === 'bomb' && count((d) => d.category === 'bomb') >= (maxSize >= 8 ? 2 : 1)) continue;
     if (x.d.category === 'support' && count((d) => d.category === 'support') >= (maxSize >= 9 ? 2 : 1)) continue;
     if (x.d.category === 'trap' && count((d) => d.category === 'trap') >= 2) continue;
     if (x.d.category === 'producer' && count((d) => d.category === 'producer') >= 2) continue;
+    push(x.d.id, x.why);
+  }
+  // 如果因为上限没填满，放宽限制补齐
+  for (const x of scored) {
+    if (deck.length >= maxSize) break;
     push(x.d.id, x.why);
   }
   return { deck, reasons, features: f };

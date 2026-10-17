@@ -26,6 +26,7 @@ export interface EnemyObs {
   metal: boolean;
   eating: boolean;
   boss: boolean;
+  behind: boolean; // 从背后进攻（掘地者钻出后）
 }
 
 export interface LaneInfo {
@@ -53,6 +54,7 @@ export interface LaneInfo {
   flyers: number;
   vehicles: number;
   burrowers: number;
+  behind: number;
   tanks: number;
   sentinel: boolean;
 }
@@ -155,6 +157,7 @@ export function observe(w: World): Observation {
       flyers: 0,
       vehicles: 0,
       burrowers: 0,
+      behind: 0,
       tanks: 0,
       sentinel: w.sentinelReady[r],
     });
@@ -222,12 +225,13 @@ export function observe(w: World): Observation {
       lane.flyers++;
     } else {
       lane.groundHp += e.shielded && lane.lobDps > lane.dps * 0.4 ? e.hp + e.armor * 0.4 : e.effHp;
-      if (!e.burrowed && e.x < lane.nearestX) lane.nearestX = e.x;
+      if (!e.burrowed && !e.behind && e.x < lane.nearestX) lane.nearestX = e.x;
     }
     if (e.shielded) lane.shields++;
     if (e.metal) lane.metal++;
     if (e.def.vehicle) lane.vehicles++;
     if (e.burrowed) lane.burrowers++;
+    if (e.behind) lane.behind++;
     if (e.effHp >= 1000) lane.tanks++;
   }
   let maxPressure = 0;
@@ -294,7 +298,7 @@ export function observe(w: World): Observation {
     dark: w.isDark(),
     fog: !!w.weather.fog,
     weather: w.weather.id,
-    skyDrops: !w.isDark() && !w.rules?.c.noSkyDrops && w.level.skyDrops !== false,
+    skyDrops: w.weather.skyMul > 0 && !w.rules?.c.noSkyDrops && w.level.skyDrops !== false && w.level.time !== 'night',
     bossAlive: w.bossAlive,
     intermission: w.status === 'intermission',
     expectedWaveHp,
@@ -321,6 +325,7 @@ function toObs(e: Enemy, speed: number): EnemyObs {
     metal: e.metal && e.armor > 0,
     eating: e.state === 'eat',
     boss: !!e.def.boss,
+    behind: e.dir > 0 || e.state === 'emerge',
   };
 }
 
