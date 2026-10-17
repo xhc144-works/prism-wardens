@@ -1,0 +1,41 @@
+import { useEffect, useState } from 'preact/hooks';
+import { onRoute, route, type Route } from '../app/nav';
+import { Toasts } from './components/ui';
+import { MenuScreen } from './screens/Menu';
+import { LevelsScreen, ModesScreen } from './screens/Levels';
+import { DeckScreen } from './screens/Deck';
+import { BattleScreen } from './screens/Battle';
+import { CheatsScreen } from './screens/Cheats';
+import { SCREENS } from './screens/registry';
+
+function renderRoute(r: Route) {
+  switch (r.name) {
+    case 'menu':
+      return <MenuScreen />;
+    case 'levels':
+      return <LevelsScreen />;
+    case 'modes':
+      return <ModesScreen mode={r.mode} />;
+    case 'deck':
+      return <DeckScreen setup={r.setup} />;
+    case 'battle':
+      return <BattleScreen setup={r.setup} key={Math.random()} />;
+    case 'cheats':
+      return <CheatsScreen />;
+    default: {
+      const S = SCREENS[r.name];
+      return S ? S(r) : <MenuScreen />;
+    }
+  }
+}
+
+export function App() {
+  const [, set] = useState(0);
+  useEffect(() => onRoute(() => set((v) => v + 1)), []);
+  return (
+    <>
+      {renderRoute(route())}
+      <Toasts />
+    </>
+  );
+}

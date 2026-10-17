@@ -1,0 +1,45 @@
+/** Electron 预加载脚本暴露的原生接口（浏览器环境下不存在） */
+export interface NativeBridge {
+  isElectron: true;
+  version: string;
+  platform: string;
+  storage: {
+    get(key: string): Promise<string | null>;
+    set(key: string, value: string): Promise<void>;
+    remove(key: string): Promise<void>;
+    list(): Promise<string[]>;
+  };
+  backup: {
+    create(label: string): Promise<string>;
+    list(): Promise<{ id: string; label: string; time: number; size: number }[]>;
+    restore(id: string): Promise<boolean>;
+    remove(id: string): Promise<void>;
+    openFolder(): Promise<void>;
+  };
+  window: {
+    setFullscreen(on: boolean): Promise<void>;
+    isFullscreen(): Promise<boolean>;
+    setSize(w: number, h: number): Promise<void>;
+    quit(): Promise<void>;
+  };
+  update: {
+    check(): Promise<{ status: string; version?: string; message?: string }>;
+    download(): Promise<void>;
+    install(): Promise<void>;
+    onStatus(cb: (s: { status: string; version?: string; percent?: number; message?: string }) => void): void;
+  };
+  file: {
+    save(name: string, content: string): Promise<boolean>;
+    open(filters?: { name: string; extensions: string[] }[]): Promise<{ name: string; content: string } | null>;
+  };
+  dataPath(): Promise<string>;
+}
+
+declare global {
+  interface Window {
+    prismNative?: NativeBridge;
+  }
+}
+
+export const native: NativeBridge | undefined = typeof window !== 'undefined' ? window.prismNative : undefined;
+export const isElectron = !!native;
