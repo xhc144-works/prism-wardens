@@ -34,5 +34,75 @@
     "typescript": "5.6.3",
     "vite": "5.4.11",
     "vitest": "2.1.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xhc144/zwdzjs.git"
+  },
+  "homepage": "https://github.com/xhc144/zwdzjs",
+  "build": {
+    "appId": "com.prismwardens.game",
+    "productName": "Prism Wardens",
+    "copyright": "Copyright © 2026 Prism Wardens Team",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "asar": true,
+    "compression": "normal",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "PrismWardens-${version}-${arch}.${ext}",
+      "legalTrademarks": "Prism Wardens",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "棱镜守卫 Prism Wardens",
+      "uninstallDisplayName": "棱镜守卫 Prism Wardens ${version}",
+      "artifactName": "PrismWardens-Setup-${version}.${ext}",
+      "differentialPackage": true,
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": [
+        "zh_CN",
+        "en_US"
+      ],
+      "language": "2052",
+      "license": "build/license.txt",
+      "runAfterFinish": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "xhc144",
+        "repo": "zwdzjs",
+        "releaseType": "release"
+      }
+    ]
   }
 }
