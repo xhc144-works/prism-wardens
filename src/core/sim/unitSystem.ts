@@ -44,6 +44,8 @@ function fire(w: World, u: Unit, row: number, dir: 1 | -1): void {
     totems: [],
     miss: w.weather.missChance > 0 && w.rng.chance(w.weather.missChance),
     age: 0,
+    maxX: d.range != null && dir > 0 ? u.col + 0.5 + d.range + 0.35 : undefined,
+    ignoreShield: d.ignoreShield || undefined,
     dead: false,
   });
   u.anim = 6;
@@ -83,14 +85,18 @@ function lobFire(w: World, u: Unit): boolean {
   const t = firstEnemyAhead(w, u, { lob: true });
   if (!t) return false;
   const d = u.def;
+  // 玉米投手：一定概率改投黄油，伤害翻倍并定身
+  const butter = !!d.butter && w.rng.chance(d.butter);
   w.projectiles.push({
     id: w.nextId++,
-    kind: d.projKind ?? 'rock',
+    kind: butter ? 'butter' : d.projKind ?? 'rock',
     row: u.row,
     fromRow: u.row,
     x: u.col + 0.5,
     vx: 0,
-    dmg: w.unitDamage(u),
+    dmg: w.unitDamage(u) * (butter ? 2 : 1),
+    slow: d.slow ? { mul: d.slow.mul, dur: d.slow.dur * w.weather.slowDurMul } : undefined,
+    stun: butter ? d.stun ?? 4 : undefined,
     pierce: false,
     antiAir: false,
     splash: d.splash ?? 0,
@@ -198,7 +204,8 @@ export function updateUnits(w: World): void {
         if (u.timer <= 0) {
           u.timer = d.interval ?? 24;
           const t = TERRAIN[w.grid[u.row][u.col].terrain];
-          const value = (d.produce ?? 25) * (t.prodMul ?? 1);
+          const grown = !!d.grow && (w.tick - u.placedTick) * DT >= d.grow.after;
+          const value = (grown ? d.grow!.produce : d.produce ?? 25) * (t.prodMul ?? 1);
           const n = d.shots ?? 1;
           for (let i = 0; i < n; i++) w.spawnOrb(value, u.col + 0.5 + (n > 1 ? (i - 0.5) * 0.35 : 0), u.row + 0.25, 'unit', u.row - 0.15);
           u.anim = 10;
@@ -247,7 +254,9 @@ export function updateUnits(w: World): void {
               u.dmgDealt += w.damageEnemy(e, e.hp + e.armor + 1, d.id);
               u.kills++;
             }
-            w.killUnit(u, e.def.id);
+            // 地刺王可以刺破多辆载具，每次损失部分生命
+            if (d.popCost) w.damageUnit(u, d.popCost, e.def.id);
+            else w.killUnit(u, e.def.id);
             break;
           }
         }
@@ -282,10 +291,13 @@ export function updateUnits(w: World): void {
       case 'instantBomb':
         u.fuse -= DT;
         if (u.fuse <= 0) {
-          explodeArea(w, u, u.col + 0.5, u.row, 1, 1.5, w.unitDamage(u), { flying: true });
-          destroyTombs(w, u.row - 1, u.row + 1, u.col - 1, u.col + 1);
-          w.emit({ t: 'explode', x: u.col + 0.5, row: u.row, radius: 1.5, kind: 'nova' });
+          const xr = d.radius ?? 1.5;
+          const rr = xr > 2 ? 2 : 1;
+          explodeArea(w, u, u.col + 0.5, u.row, rr, xr, w.unitDamage(u), { flying: true });
+          destroyTombs(w, u.row - rr, u.row + rr, u.col - Math.ceil(xr - 0.5), u.col + Math.ceil(xr - 0.5));
+          w.emit({ t: 'explode', x: u.col + 0.5, row: u.row, radius: xr, kind: d.crater ? 'doom' : 'nova' });
           w.removeUnit(u);
+          if (d.crater) w.grid[u.row][u.col].crack = Math.max(w.grid[u.row][u.col].crack, d.crater);
         }
         break;
       case 'laneBomb':
@@ -401,7 +413,9 @@ export function updateUnits(w: World): void {
         let best: Enemy | undefined;
         let bd = Infinity;
         for (const e of w.enemies) {
-          if (e.dead || !e.metal || e.armor <= 0) continue;
+          if (e.dead) continue;
+          const pogoStick = !!e.def.pogo && !e.jumped && e.state !== 'jump';
+          if (!pogoStick && (!e.metal || e.armor <= 0)) continue;
           const dist = Math.hypot(e.x - (u.col + 0.5), e.row - u.row);
           if (dist <= (d.range ?? 2.5) + 0.3 && dist < bd) {
             bd = dist;
@@ -410,8 +424,11 @@ export function updateUnits(w: World): void {
         }
         if (best) {
           w.emit({ t: 'magnet', x: best.x, row: best.row, ux: u.col + 0.5, urow: u.row });
-          best.armor = 0;
-          best.metal = false;
+          if (best.def.pogo && !best.jumped) best.jumped = true;
+          else {
+            best.armor = 0;
+            best.metal = false;
+          }
           if (best.def.berserk) best.berserk = true;
           u.timer = d.interval ?? 15;
           u.anim = 12;
@@ -439,6 +456,59 @@ export function updateUnits(w: World): void {
         }
         break;
       }
+      case 'squash': {
+        // 倭瓜：发现紧邻的地面敌人后起跳，落地压扁落点附近的所有敌人
+        if (u.chomp > 0) {
+          u.chomp -= DT;
+          const t = w.enemyById(u.chompTarget);
+          if (t && !t.dead) u.fuse = t.x;
+          if (u.chomp <= 0) {
+            explodeArea(w, u, u.fuse, u.row, 0, 0.65, w.unitDamage(u));
+            w.emit({ t: 'explode', x: u.fuse, row: u.row, radius: 0.65, kind: 'squash' });
+            w.removeUnit(u);
+          }
+          break;
+        }
+        const t = w
+          .enemiesInRow(u.row)
+          .find((e) => !e.dead && !e.def.flying && !e.burrowed && !e.submerged && !e.def.bungee && e.x >= u.col - 0.3 && e.x <= u.col + 0.5 + (d.range ?? 1.1));
+        if (t) {
+          u.chomp = 0.75;
+          u.chompTarget = t.id;
+          u.fuse = t.x;
+          u.anim = 22;
+          w.emit({ t: 'squash', row: u.row, col: u.col, x: t.x });
+        }
+        break;
+      }
+      case 'aura': {
+        // 忧郁菇：周围 3×3 范围持续喷出烟雾
+        u.timer = Math.max(0, u.timer - DT * rate);
+        if (u.timer > 0) break;
+        const R = d.range ?? 1;
+        const hits = w.enemies.filter(
+          (e) => !e.dead && !e.def.flying && !e.burrowed && !e.submerged && Math.abs(e.row - u.row) <= R && Math.abs(e.x - (u.col + 0.5)) <= R + 0.6,
+        );
+        if (!hits.length) break;
+        const dmg = w.unitDamage(u) * (d.shots ?? 1);
+        for (const e of hits) {
+          u.dmgDealt += w.damageEnemy(e, dmg, d.id, { front: false });
+          if (e.dead) u.kills++;
+        }
+        u.timer = d.interval ?? 2;
+        u.anim = 10;
+        w.emit({ t: 'aura', row: u.row, col: u.col, unit: u.id });
+        break;
+      }
+      case 'gravebuster':
+        // 墓碑吞噬者：啃食所在的墓碑，完成后与墓碑一起消失
+        u.fuse -= DT;
+        if (u.fuse <= 0) {
+          w.grid[u.row][u.col].tomb = false;
+          w.emit({ t: 'tombBreak', row: u.row, col: u.col });
+          w.removeUnit(u);
+        }
+        break;
       default:
         break;
     }

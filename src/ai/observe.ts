@@ -109,6 +109,8 @@ export function unitDps(w: World, u: Unit): number {
       return ((w.unitDamage(u) * (1 + (d.chains ?? 3) * 0.5)) / (d.interval ?? 2)) * rate;
     case 'spike':
       return (w.unitDamage(u) / (d.interval ?? 1)) * rate * 0.6;
+    case 'aura':
+      return ((w.unitDamage(u) * (d.shots ?? 1)) / (d.interval ?? 2)) * rate;
     default:
       return 0;
   }
@@ -192,6 +194,14 @@ export function observe(w: World): Observation {
           if (!ln) continue;
           ln.dps += dps * 0.3;
           ln.airDps += dps * 0.3;
+        }
+      } else if (d.behavior === 'aura') {
+        // 3×3 范围：本行与相邻两行都计入，但只在近距离生效
+        for (const ln of [lanes[u.row - 1], lane, lanes[u.row + 1]]) {
+          if (!ln) continue;
+          ln.dps += ln === lane ? dps * 0.8 : dps * 0.4;
+          ln.shooters++;
+          ln.frontAttackCol = Math.max(ln.frontAttackCol, u.col);
         }
       } else if (d.behavior === 'lobber') {
         lane.dps += dps;

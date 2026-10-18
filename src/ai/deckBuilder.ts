@@ -188,6 +188,49 @@ export function scoreCard(d: UnitDef, f: LevelFeatures, s: StrategyParams, size:
       sc = 18;
       why = '控制推回';
       break;
+    case 'spore_puff':
+      sc = f.night ? 56 : 18;
+      why = f.night ? '免费的短程火力，夜晚更强' : '免费但射程短';
+      break;
+    case 'dawn_cap':
+      sc = f.night ? 74 : 28;
+      why = '廉价经济';
+      break;
+    case 'fume_cap':
+      sc = (f.night ? 50 : 24) + (f.shields ? 22 : 0) + (f.swarm ? 6 : 0);
+      why = f.shields ? '穿透盾牌的范围烟雾' : '穿透烟雾';
+      break;
+    case 'doom_cap':
+      sc = 42 + (f.boss ? 8 : 0) + (f.tanks ? 6 : 0);
+      why = '超大范围爆破';
+      break;
+    case 'squash_gem':
+      sc = 46 + (f.tanks ? 8 : 0) + s.trapBias * 4;
+      why = '廉价单体秒杀';
+      break;
+    case 'tide_puff':
+      sc = f.water ? (f.night ? 42 : 16) : -100;
+      why = '水面上的免费火力';
+      break;
+    case 'kernel_lobber':
+      sc = 28 + (f.shields ? 24 : 0) + (f.tanks ? 8 : 0);
+      why = '黄油定身';
+      break;
+    case 'garlic_bulb':
+      sc = 8 + s.wallBias * 3;
+      why = '分流敌人';
+      break;
+    case 'tomb_eater':
+      sc = f.night ? 20 : -50;
+      why = '清除蚀晶碑';
+      break;
+    case 'gatling_prism':
+    case 'gloom_cap':
+    case 'winter_meteor':
+    case 'spike_rock':
+      sc = 14 + (size >= 8 ? 14 : 0);
+      why = '高阶强化（需要底座单位）';
+      break;
     default: {
       // 自定义单位：按定位估算
       if (d.behavior === 'producer') sc = 70;
@@ -220,6 +263,9 @@ export function buildDeck(req: DeckRequest): DeckResult {
   const deck: string[] = [];
   const push = (id: string, why: string) => {
     if (deck.length >= maxSize || deck.includes(id)) return;
+    // 只能种在底座单位上的强化卡，需要底座已在卡组中
+    const up = CONTENT.unit(id).upgradeOf;
+    if (up && CONTENT.unit(id).behavior !== 'upgradeProducer' && !deck.includes(up)) return;
     deck.push(id);
     reasons.push(`${CONTENT.unit(id).name}：${why}`);
   };

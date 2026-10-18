@@ -237,6 +237,7 @@ export const ARENAS = [
 const ALL_SPAWNABLE = [
   'husk', 'shard_husk', 'iron_husk', 'leaper', 'shieldbearer', 'berserker', 'burrower', 'floater', 'summoner',
   'colossus', 'imp', 'frost_hauler', 'catapult', 'diver', 'splitter', 'shade', 'priest', 'bomber', 'ram',
+  'pogo_husk', 'wave_rider', 'bungee_husk',
 ];
 
 export function makeEndlessLevel(arenaId: string): LevelDef {

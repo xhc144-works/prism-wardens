@@ -186,6 +186,7 @@ function ShopScreen() {
   const p = store.profile;
   const entries = shopEntries(p);
   const groups: { kind: string; title: string }[] = [
+    { kind: 'card', title: '新卡牌' },
     { kind: 'slot', title: '卡槽' },
     { kind: 'skill', title: '技能' },
     { kind: 'item', title: '道具' },
@@ -206,7 +207,7 @@ function ShopScreen() {
               <div class="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
                 {list.map((e) => (
                   <div class="panel row" style={{ flexWrap: 'nowrap', background: 'rgba(0,0,0,0.15)' }}>
-                    {e.kind === 'upgrade' && CONTENT.units.get(e.id) && <img src={unitIcon(CONTENT.unit(e.id), 52)} style={{ width: 52, height: 52 }} />}
+                    {(e.kind === 'upgrade' || e.kind === 'card') && CONTENT.units.get(e.id) && <img src={unitIcon(CONTENT.unit(e.id), 52)} style={{ width: 52, height: 52 }} />}
                     <div style={{ flex: 1 }}>
                       <b>{e.name}</b>
                       <div class="muted" style={{ fontSize: 12 }}>{e.desc}</div>
@@ -215,6 +216,7 @@ function ShopScreen() {
                       small
                       kind="gold"
                       disabled={!e.available || p.coins < e.price}
+                      title={!e.available ? e.reason : undefined}
                       onClick={() => {
                         const err = buy(p, e);
                         if (err) toast(err, 'bad');

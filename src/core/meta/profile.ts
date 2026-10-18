@@ -116,8 +116,25 @@ export function chapterCleared(p: Profile, chapter: number): boolean {
 export const UPGRADE_COST = (level: number) => 150 * level; // 升到 level+1 的价格
 export const SLOT_COST = (slots: number) => [0, 0, 0, 0, 0, 0, 600, 1200, 2400, 4000][slots] ?? 99999;
 
+/** 商店出售的扩展卡牌（原版其余植物的机制）：通关指定关卡后上架 */
+export const SHOP_CARDS: { id: string; price: number; after: string }[] = [
+  { id: 'spore_puff', price: 150, after: '1-6' },
+  { id: 'dawn_cap', price: 250, after: '2-1' },
+  { id: 'fume_cap', price: 500, after: '2-2' },
+  { id: 'tomb_eater', price: 300, after: '2-3' },
+  { id: 'squash_gem', price: 600, after: '2-4' },
+  { id: 'doom_cap', price: 1200, after: '2-6' },
+  { id: 'tide_puff', price: 400, after: '3-2' },
+  { id: 'gatling_prism', price: 2000, after: '3-4' },
+  { id: 'garlic_bulb', price: 400, after: '4-1' },
+  { id: 'gloom_cap', price: 1500, after: '4-3' },
+  { id: 'kernel_lobber', price: 800, after: '5-1' },
+  { id: 'spike_rock', price: 1500, after: '5-2' },
+  { id: 'winter_meteor', price: 2500, after: '5-4' },
+];
+
 export interface ShopEntry {
-  kind: 'slot' | 'upgrade' | 'item' | 'skill';
+  kind: 'slot' | 'upgrade' | 'item' | 'skill' | 'card';
   id: string;
   name: string;
   desc: string;
@@ -129,6 +146,22 @@ export interface ShopEntry {
 export function shopEntries(p: Profile): ShopEntry[] {
   const out: ShopEntry[] = [];
   if (p.deckSlots < MAX_DECK_SLOTS) out.push({ kind: 'slot', id: 'slot', name: `第 ${p.deckSlots + 1} 个卡槽`, desc: '战斗中可以多携带一张卡牌', price: SLOT_COST(p.deckSlots), available: true });
+  for (const c of SHOP_CARDS) {
+    if (p.unlockedCards.includes(c.id)) continue;
+    const d = CONTENT.units.get(c.id);
+    if (!d) continue;
+    const open = !!p.progress[c.after]?.wins;
+    const base = d.upgradeOf ? CONTENT.units.get(d.upgradeOf)?.name : '';
+    out.push({
+      kind: 'card',
+      id: c.id,
+      name: `卡牌：${d.name}`,
+      desc: `${d.desc}${base ? `（需要先拥有${base}）` : ''}`,
+      price: c.price,
+      available: open,
+      reason: `通关 ${c.after} 后上架`,
+    });
+  }
   for (const s of SKILLS) {
     if (p.unlockedSkills.includes(s.id)) continue;
     out.push({ kind: 'skill', id: s.id, name: `技能：${s.name}`, desc: s.desc, price: s.price, available: true });
@@ -154,6 +187,9 @@ export function buy(p: Profile, e: ShopEntry): string | null {
       break;
     case 'skill':
       if (!p.unlockedSkills.includes(e.id)) p.unlockedSkills.push(e.id);
+      break;
+    case 'card':
+      if (!p.unlockedCards.includes(e.id)) p.unlockedCards.push(e.id);
       break;
     case 'item':
       p.items[e.id] = (p.items[e.id] ?? 0) + 1;

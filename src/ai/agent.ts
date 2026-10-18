@@ -396,10 +396,15 @@ export class AIAgent {
         case 'shooter':
         case 'lobber':
         case 'chain':
+        case 'aura':
           if (!assistOnly) this.attackCandidates(w, obs, d, card.cost, out);
           break;
         case 'wall':
+        case 'garlic':
           this.wallCandidates(w, obs, d, card.cost, out, assistOnly);
+          break;
+        case 'gravebuster':
+          if (!assistOnly) this.tombCandidates(w, obs, d, card.cost, out);
           break;
         case 'instantBomb':
         case 'laneBomb':
@@ -414,6 +419,9 @@ export class AIAgent {
         case 'devourer':
         case 'lurker':
           if (!assistOnly) this.meleeCandidates(w, obs, d, card.cost, out);
+          break;
+        case 'squash':
+          this.meleeCandidates(w, obs, d, card.cost, out);
           break;
         case 'bell':
         case 'totem':
@@ -507,7 +515,7 @@ export class AIAgent {
 
   private attackValue(w: World, obs: Observation, d: UnitDef, row: number): { value: number; reasons: string[] } {
     const lanes = d.behavior === 'shooter' ? (d.lanes ?? [0]).map((l) => obs.lanes[row + l]).filter(Boolean) : [obs.lanes[row]];
-    if (d.behavior === 'chain') {
+    if (d.behavior === 'chain' || d.behavior === 'aura') {
       for (const l of [obs.lanes[row - 1], obs.lanes[row + 1]]) if (l) lanes.push(l);
     }
     let total = 0;
@@ -525,7 +533,7 @@ export class AIAgent {
       if (d.slow && lane.enemies.length >= 2) fit += 0.15;
       if (d.back && (lane.burrowers > 0 || lane.behind > 0)) fit += 2.5;
       else if (d.back && obs.levelPool.some((e) => e.burrow) && !obs.units.some((u) => u.row === lane.row && u.def.back)) fit += 0.8;
-      const weight = d.behavior === 'chain' && lane.row !== row ? 0.4 : 1;
+      const weight = (d.behavior === 'chain' || d.behavior === 'aura') && lane.row !== row ? 0.4 : 1;
       let contrib = Math.min(per, deficit + per * 0.25) * fit * weight;
       // 对空缺口单独计算
       if ((d.antiAir || d.behavior === 'chain') && lane.airHp > 0) {
@@ -548,6 +556,7 @@ export class AIAgent {
     if (d.behavior === 'shooter') return (dmg * (d.shots ?? 1) * (d.lanes?.length ?? 1)) / (d.interval ?? 1.4);
     if (d.behavior === 'lobber') return (dmg / (d.interval ?? 2.4)) * (d.splash ? 1.3 : 1);
     if (d.behavior === 'chain') return (dmg * (1 + (d.chains ?? 3) * 0.5)) / (d.interval ?? 2);
+    if (d.behavior === 'aura') return (dmg * (d.shots ?? 1)) / (d.interval ?? 2);
     return 0;
   }
 
@@ -803,7 +812,9 @@ export class AIAgent {
       }
       const lead = ground.reduce((a, b) => (a.x < b.x ? a : b));
       if (d.behavior === 'devourer' && lead.effHp < 450 && !this.isEmergency(lane)) continue;
-      const col = Math.floor(lead.x - (d.behavior === 'lurker' ? 1.6 : 1.9) - lead.speed * 0.8);
+      if (d.behavior === 'squash' && lead.effHp < 600 && !this.isEmergency(lane)) continue;
+      if (d.behavior === 'squash' && lead.def.bungee) continue;
+      const col = Math.floor(lead.x - (d.behavior === 'lurker' ? 1.6 : d.behavior === 'squash' ? 1.2 : 1.9) - lead.speed * 0.8);
       for (let c = Math.min(col, w.cols - 1); c >= Math.max(0, lane.frontAttackCol + 1); c--) {
         const cmd: Command = { type: 'place', card: d.id, row: lane.row, col: c };
         if (!w.validate(cmd, 'ai', LEGAL).ok) continue;
@@ -812,6 +823,28 @@ export class AIAgent {
         break;
       }
     }
+  }
+
+  /** 碑噬者：优先清除最靠左（离防线最近）的蚀晶碑 */
+  private tombCandidates(w: World, obs: Observation, d: UnitDef, cost: number, out: Candidate[]): void {
+    let best: [number, number] | undefined;
+    for (let r = 0; r < w.rows; r++)
+      for (let c = 0; c < w.cols; c++) {
+        if (!w.grid[r][c].tomb) continue;
+        if (!w.validate({ type: 'place', card: d.id, row: r, col: c }, 'ai', LEGAL).ok) continue;
+        if (!this.safeCol(obs.lanes[r], c, 0.3)) continue;
+        if (!best || c < best[1]) best = [r, c];
+      }
+    if (!best) return;
+    const [r, c] = best;
+    out.push({
+      cmd: { type: 'place', card: d.id, row: r, col: c },
+      score: 30 + (w.cols - c) * 3 + (obs.wave >= 2 ? 8 : 0),
+      kind: 'utility',
+      label: `${d.name} → 第${r + 1}行第${c + 1}列`,
+      reasons: ['蚀晶碑会在波次中爬出敌人，并占据可部署的格子'],
+      cost,
+    });
   }
 
   private supportCandidates(w: World, obs: Observation, d: UnitDef, cost: number, out: Candidate[]): void {

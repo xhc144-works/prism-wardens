@@ -58,7 +58,7 @@ export interface Unit {
   anim: number;
 }
 
-export type EnemyState = 'walk' | 'eat' | 'jump' | 'burrow' | 'emerge' | 'cast' | 'smash' | 'throw' | 'dive' | 'fly' | 'boss';
+export type EnemyState = 'walk' | 'eat' | 'jump' | 'burrow' | 'emerge' | 'cast' | 'smash' | 'throw' | 'dive' | 'fly' | 'boss' | 'drop' | 'grab' | 'leave';
 
 export interface BossState {
   phase: number;
@@ -113,6 +113,8 @@ export interface Enemy {
   escaped?: boolean;
   boss?: BossState;
   rowSpan?: [number, number];
+  /** 啃咬大蒜的累计时间 */
+  divertT?: number;
   // 表现层
   flash: number;
   anim: number;
@@ -138,6 +140,12 @@ export interface Projectile {
   miss: boolean;
   age: number;
   lob?: { target: number; sx: number; tx: number; t: number; dur: number; h: number; trow: number };
+  /** 射程上限（短程射手） */
+  maxX?: number;
+  /** 命中后定身秒数（黄油） */
+  stun?: number;
+  /** 穿透盾牌（烟雾） */
+  ignoreShield?: boolean;
   enemyShot?: { targetUnit: number; dmg: number };
   dead: boolean;
 }

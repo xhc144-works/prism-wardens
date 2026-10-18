@@ -441,6 +441,11 @@ export class World {
     const cell = this.grid[row][col];
     const t = TERRAIN[cell.terrain];
     if (cell.terrain === 'x') return { ok: false, reason: '虚空无法部署' };
+    if (def.behavior === 'gravebuster') {
+      if (!cell.tomb) return { ok: false, reason: '只能放在蚀晶碑上' };
+      if (this.unitById(cell.main)) return { ok: false, reason: '这里已有单位' };
+      return { ok: true };
+    }
     if (cell.tomb) return { ok: false, reason: '蚀晶碑占据了这里' };
     if (cell.node) return { ok: false, reason: '光晶矿占据了这里' };
     if (cell.crack > 0) return { ok: false, reason: '地面开裂，暂时无法部署' };
@@ -715,7 +720,7 @@ export class World {
       slowMul: 1,
       freeze: 0,
       stun: 0,
-      state: def.flying ? 'fly' : def.burrow ? 'burrow' : def.swim ? 'dive' : def.boss ? 'boss' : 'walk',
+      state: def.flying ? 'fly' : def.burrow ? 'burrow' : def.bungee ? 'drop' : def.swim && !def.rider ? 'dive' : def.boss ? 'boss' : 'walk',
       stateT: 0,
       target: 0,
       timer: 0,
@@ -725,7 +730,7 @@ export class World {
       jumpFrom: 0,
       jumpTo: 0,
       berserk: false,
-      submerged: !!def.swim,
+      submerged: !!def.swim && !def.rider,
       burrowed: !!def.burrow,
       hidden: !!def.stealth,
       ammo: def.catapult ? 20 : 0,

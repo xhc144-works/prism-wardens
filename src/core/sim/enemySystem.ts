@@ -82,6 +82,57 @@ function summon(w: World, e: Enemy): void {
   w.emit({ t: 'text', text: '唤潮术士召唤了援军', color: '#e0aaff' });
 }
 
+/** 蹦极僵尸：降落到一个守卫上方，抓取后带着它离开；被保护伞挡住会弹回 */
+function updateBungee(w: World, e: Enemy): void {
+  if (e.state === 'drop') {
+    if (e.stateT === 0) {
+      const candidates = w.units.filter((u) => !u.dead && !u.relic && u.layer !== 'instant');
+      if (candidates.length) {
+        const u = candidates[Math.floor(w.rng.next() * candidates.length)];
+        e.target = u.id;
+        e.row = u.row;
+        e.y = u.row;
+        e.x = u.col + 0.5;
+      } else {
+        e.target = 0;
+        e.x = 2 + Math.floor(w.rng.next() * Math.max(1, w.cols - 4)) + 0.5;
+      }
+      w.emit({ t: 'bungee', x: e.x, row: e.row });
+    }
+    e.stateT += DT;
+    if (e.stateT >= 1.6) {
+      e.state = 'grab';
+      e.stateT = 0;
+    }
+    return;
+  }
+  if (e.state === 'grab') {
+    e.stateT += DT;
+    const target = w.unitById(e.target);
+    const guarded = w.units.some((u) => !u.dead && u.def.behavior === 'bell' && Math.abs(u.row - e.row) <= 1 && Math.abs(u.col + 0.5 - e.x) <= 1.5);
+    if (guarded) {
+      e.state = 'leave';
+      e.stateT = 0;
+      w.emit({ t: 'text', text: '保护伞弹开了蹦极', color: '#bdf' });
+      return;
+    }
+    if (e.stateT >= 2.4) {
+      if (target && !target.dead) {
+        w.emit({ t: 'steal', row: target.row, col: target.col, unit: target.def.id });
+        w.killUnit(target, e.def.id);
+      }
+      e.state = 'leave';
+      e.stateT = 0;
+    }
+    return;
+  }
+  e.stateT += DT;
+  if (e.stateT >= 1) {
+    e.escaped = true;
+    e.dead = true;
+  }
+}
+
 export function updateEnemies(w: World): void {
   const healTick = w.tick % 30 === 0;
   for (const e of w.enemies) {
@@ -178,10 +229,16 @@ export function updateEnemies(w: World): void {
         e.x = e.jumpFrom + (e.jumpTo - e.jumpFrom) * k;
         if (k >= 1) {
           e.state = 'walk';
-          e.jumped = true;
+          // 跳跳僵尸落地后继续跳；撑杆/海豚只跳一次
+          e.jumped = !e.def.pogo;
         }
         break;
       }
+      case 'drop':
+      case 'grab':
+      case 'leave':
+        updateBungee(w, e);
+        break;
       case 'smash':
         e.stateT -= DT;
         if (e.stateT <= 0) {
@@ -272,6 +329,7 @@ export function updateEnemies(w: World): void {
           if (e.def.jumper && !e.jumped) {
             if (blocker.def.tall) {
               e.jumped = true;
+              if (e.def.pogo) w.emit({ t: 'bite', row: blocker.row, col: blocker.col });
             } else {
               e.state = 'jump';
               e.stateT = 0;
@@ -286,6 +344,23 @@ export function updateEnemies(w: World): void {
           if (e.def.ram && blocker.def.category === 'wall') dps *= 4;
           w.damageUnit(blocker, dps * DT, e.def.id);
           if (w.tick % 20 === 0) w.emit({ t: 'bite', row: blocker.row, col: blocker.col });
+          // 大蒜：咬一口后换到相邻的陆地行
+          if (blocker.def.divert && !e.def.vehicle && !e.def.boss && !e.rowSpan) {
+            e.divertT = (e.divertT ?? 0) + DT;
+            if (e.divertT >= 0.6) {
+              e.divertT = 0;
+              const up = validLandRow(w, e.row - 1);
+              const down = validLandRow(w, e.row + 1);
+              if (up || down) {
+                const from = e.row;
+                e.row += up && down ? (w.rng.chance(0.5) ? -1 : 1) : up ? -1 : 1;
+                e.state = 'walk';
+                e.target = 0;
+                e.x += 0.15;
+                w.emit({ t: 'divert', x: e.x, row: e.row, from });
+              }
+            }
+          }
         } else {
           e.state = 'walk';
           const prevX = e.x;

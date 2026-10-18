@@ -8,12 +8,13 @@ function applyHit(w: World, p: Projectile, e: Enemy, dir: number): void {
   let dmg = p.dmg;
   if (p.kind === 'fire') dmg *= w.weather.fireMul;
   const src = w.unitById(p.srcId);
-  const dealt = w.damageEnemy(e, dmg, p.src, { front: !p.lob, dir });
+  const dealt = w.damageEnemy(e, dmg, p.src, { front: !p.lob && !p.ignoreShield, dir });
   if (src) {
     src.dmgDealt += dealt;
     if (e.dead) src.kills++;
   }
   if (!e.dead) {
+    if (p.stun) e.stun = Math.max(e.stun, p.stun);
     if (p.kind === 'fire') {
       e.slow = 0;
       e.freeze = 0;
@@ -112,7 +113,7 @@ export function updateProjectiles(w: World): void {
     const prevX = p.x;
     p.x += p.vx * DT;
     totemCheck(w, p, prevX);
-    if (p.x > w.cols + 0.8 || p.x < -0.8) {
+    if (p.x > w.cols + 0.8 || p.x < -0.8 || (p.maxX != null && p.x > p.maxX)) {
       p.dead = true;
       continue;
     }

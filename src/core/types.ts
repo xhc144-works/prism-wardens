@@ -41,9 +41,13 @@ export type UnitBehavior =
   | 'lantern'
   | 'gale'
   | 'magnet'
-  | 'gravity';
+  | 'gravity'
+  | 'squash'
+  | 'aura'
+  | 'gravebuster'
+  | 'garlic';
 
-export type ProjKind = 'bolt' | 'frost' | 'fire' | 'steam' | 'thorn' | 'rock' | 'meteor' | 'moon' | 'spark';
+export type ProjKind = 'bolt' | 'frost' | 'fire' | 'steam' | 'thorn' | 'rock' | 'meteor' | 'moon' | 'spark' | 'spore' | 'fume' | 'kernel' | 'butter' | 'icemeteor';
 
 export interface ArtColors {
   a: string; // 主色
@@ -93,6 +97,13 @@ export interface UnitDef {
   instant?: boolean; // 一次性（炸弹类）
   lunar?: number; // 夜晚/月蚀伤害倍率
   solar?: number; // 白天伤害倍率
+  grow?: { after: number; produce: number }; // 生产者：放置 after 秒后成长，产出提升
+  popCost?: number; // 地刺类：每刺破一辆载具损失的生命（不设则刺破后自毁）
+  butter?: number; // 投手：每次投掷改为黄油的概率（定身）
+  stun?: number; // 定身秒数
+  ignoreShield?: boolean; // 攻击穿透盾牌
+  divert?: boolean; // 被啃咬后把敌人赶到相邻行
+  crater?: number; // 爆炸后在所在格留下弹坑的秒数
   colors: ArtColors;
   art: string;
   tags?: string[];
@@ -126,6 +137,9 @@ export interface EnemyDef {
   berserk?: boolean;
   thrower?: boolean;
   ram?: boolean;
+  pogo?: boolean; // 连续跳跃，遇到高大单位或被磁力吸走跳杆后停止
+  rider?: boolean; // 水面骑乘（不潜水），遇到第一个单位时跃过
+  bungee?: boolean; // 从空中降下偷走一个单位
   boss?: BossKind;
   cost: number; // 波次预算点
   weight: number; // 生成权重
@@ -370,7 +384,7 @@ export interface GameConfig {
 export type FxEvent =
   | { t: 'shoot'; x: number; row: number; kind: ProjKind; unit: number }
   | { t: 'hit'; x: number; row: number; kind: ProjKind; dmg: number }
-  | { t: 'explode'; x: number; row: number; radius: number; kind: 'nova' | 'mine' | 'fire' | 'bomber' | 'meteor' | 'steam' }
+  | { t: 'explode'; x: number; row: number; radius: number; kind: 'nova' | 'mine' | 'fire' | 'bomber' | 'meteor' | 'steam' | 'doom' | 'squash' }
   | { t: 'lane'; row: number; kind: 'fire' }
   | { t: 'freeze' }
   | { t: 'place'; row: number; col: number; unit: string }
@@ -400,6 +414,12 @@ export type FxEvent =
   | { t: 'pull'; row: number }
   | { t: 'magnet'; x: number; row: number; ux: number; urow: number }
   | { t: 'splash'; x: number; row: number }
+  | { t: 'squash'; row: number; col: number; x: number }
+  | { t: 'aura'; row: number; col: number; unit: number }
+  | { t: 'tombBreak'; row: number; col: number }
+  | { t: 'divert'; x: number; row: number; from: number }
+  | { t: 'steal'; row: number; col: number; unit: string }
+  | { t: 'bungee'; x: number; row: number }
   | { t: 'end'; won: boolean };
 
 export interface FxRecord {
