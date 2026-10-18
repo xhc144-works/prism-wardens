@@ -79,12 +79,20 @@ jobs:
         run: |
           $setup = Get-ChildItem release -Filter 'PrismWardens-Setup-*.exe' | Select-Object -First 1
           Write-Host "安装包: $($setup.Name) ($([math]::Round($setup.Length / 1MB, 1)) MB)"
-          Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+          $proc = Start-Process -FilePath $setup.FullName -ArgumentList '/S', '/currentuser' -Wait -PassThru
+          Write-Host "安装程序退出码: $($proc.ExitCode)"
           $dir = Join-Path $env:LOCALAPPDATA 'Programs\Prism Wardens'
           $exe = Join-Path $dir 'Prism Wardens.exe'
-          # NSIS 会在临时目录里重新启动自身，Start-Process -Wait 可能早于安装完成返回
-          for ($i = 0; $i -lt 120 -and -not (Test-Path $exe); $i++) { Start-Sleep -Seconds 1 }
-          if (-not (Test-Path $exe)) { throw "安装失败：找不到 $exe" }
+          # NSIS 会在临时目录里重新启动自身，-Wait 可能早于安装完成返回；杀毒扫描也可能拖慢解压
+          for ($i = 0; $i -lt 300 -and -not (Test-Path $exe); $i++) { Start-Sleep -Seconds 1 }
+          if (-not (Test-Path $exe)) {
+            Write-Host '--- 诊断信息 ---'
+            Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs') -ErrorAction SilentlyContinue | Format-Table Name, LastWriteTime
+            Get-ChildItem 'C:\Program Files' -Filter '*Prism*' -ErrorAction SilentlyContinue | Format-Table FullName
+            Get-Process | Where-Object { $_.ProcessName -match 'Prism|Setup|Un_|nsis' } | Format-Table ProcessName, Id, StartTime
+            Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' -ErrorAction SilentlyContinue | Get-ItemProperty | Where-Object { $_.DisplayName -like '*Prism*' } | Format-List DisplayName, InstallLocation
+            throw "安装失败：找不到 $exe"
+          }
           $reg = $null
           for ($i = 0; $i -lt 60 -and -not $reg; $i++) {
             $reg = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' | Get-ItemProperty | Where-Object { $_.DisplayName -like '*Prism Wardens*' }
