@@ -1442,3 +1442,149 @@ table.table tr:hover td {
   text-align: right;
   color: rgb(40, 50, 90);
 }
+
+/* ======================================================================
+   经典皮肤：通用界面主题（AI 控制台、编辑器、设置等原创功能页面也统一为原版风格）
+   ====================================================================== */
+html.skin-classic {
+  --panel: rgba(38, 41, 66, 0.92);
+  --panel-2: rgba(52, 55, 86, 0.95);
+  --line: rgba(160, 165, 210, 0.35);
+  --line-2: rgba(180, 185, 230, 0.55);
+  --text: #f2ecd2;
+  --muted: #c9c2a4;
+  --dim: #9c9682;
+  --accent: #a6ff7a;
+  --accent-2: #f2e464;
+  --gold: #f6d24a;
+  --radius: 10px;
+  --font: 'Microsoft YaHei', 'PingFang SC', 'Noto Sans CJK SC', sans-serif;
+}
+html.skin-classic body,
+html.skin-classic #app {
+  background: #1b1d2e var(--pvz-dlg-cm) repeat;
+}
+html.skin-classic .topbar {
+  background: linear-gradient(180deg, #8b5a2b 0%, #6b4220 55%, #4a2c12 100%);
+  border-bottom: 3px solid #2b170a;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+  backdrop-filter: none;
+}
+html.skin-classic .topbar h2 {
+  background: none;
+  color: #f6e35a;
+  -webkit-text-fill-color: #f6e35a;
+  text-shadow: 0 2px 0 #3a1d06, 0 0 3px #000;
+  letter-spacing: 3px;
+}
+html.skin-classic .panel {
+  background: linear-gradient(rgba(36, 38, 62, 0.88), rgba(28, 30, 50, 0.92)), var(--pvz-dlg-cm);
+  border: 3px solid #7d81a8;
+  box-shadow: inset 0 0 0 2px #3b3e60, 0 4px 0 #1a1b2c;
+}
+html.skin-classic .panel h3,
+html.skin-classic .panel h4 {
+  color: #e7df52;
+  text-shadow: 0 2px 0 #2b1c06;
+}
+html.skin-classic .btn {
+  background: linear-gradient(180deg, #a3a6c8 0%, #7a7da6 45%, #5a5d86 100%);
+  border: 2px solid #2e3050;
+  border-radius: 8px;
+  color: #00e400;
+  font-weight: 800;
+  text-shadow: 0 1px 0 #032b00;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 0 #1d1e33;
+}
+html.skin-classic .btn:hover {
+  filter: brightness(1.12);
+  border-color: #2e3050;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 0 #1d1e33;
+}
+html.skin-classic .btn.primary,
+html.skin-classic .btn.gold {
+  background: linear-gradient(180deg, #e4a14a 0%, #b86b22 55%, #8a4a12 100%);
+  border-color: #3b1d06;
+  color: #fff27a;
+  text-shadow: 0 1px 0 #3b1d06;
+}
+html.skin-classic .btn.danger {
+  background: linear-gradient(180deg, #c95a4a, #8a2a1c);
+  border-color: #3b0d06;
+  color: #ffe3d8;
+  text-shadow: 0 1px 0 #3b0d06;
+}
+html.skin-classic .btn.active {
+  background: linear-gradient(180deg, #f2e464, #c9a12c);
+  color: #3a2208;
+  text-shadow: none;
+}
+html.skin-classic .btn.ghost {
+  background: transparent;
+  color: #f6e35a;
+  border-color: #6b4220;
+  box-shadow: none;
+}
+html.skin-classic .tab {
+  border: 2px solid #4a2c12;
+  border-radius: 8px 8px 2px 2px;
+  background: linear-gradient(#b98a4c, #8a5d2a);
+  color: #fff3c6;
+  font-weight: 800;
+}
+html.skin-classic .tab.active {
+  background: linear-gradient(#ffe08a, #d9a441);
+  color: #4a2a05;
+}
+html.skin-classic input,
+html.skin-classic select,
+html.skin-classic textarea {
+  background: #22243a;
+  color: #f2ecd2;
+  border: 1px solid #7d81a8;
+}
+html.skin-classic .card {
+  background: linear-gradient(180deg, #e9f3cf 0%, #b9d98f 60%, #8fbf64 100%) !important;
+  border: 2px solid #4c6b2a;
+  border-radius: 6px;
+}
+html.skin-classic .card .name {
+  color: #1b2a0c;
+  text-shadow: none;
+  font-weight: 800;
+}
+html.skin-classic .card .cost {
+  background: #f3f1d8;
+  color: #000;
+  border-top: 1px solid #8a8a6a;
+}
+html.skin-classic .modal {
+  background: var(--panel);
+}
+html.skin-classic .muted {
+  color: var(--muted);
+}
+html.skin-classic .tag {
+  background: rgba(120, 80, 30, 0.35);
+  border-color: rgba(200, 160, 90, 0.5);
+  color: #f6e7c0;
+}
+html.skin-classic .level-node,
+html.skin-classic .menu-tile {
+  background: linear-gradient(rgba(60, 40, 20, 0.85), rgba(40, 26, 12, 0.9));
+  border: 2px solid #8a5d2a;
+}
+.pvz-modal-body .btn {
+  margin: 2px;
+}
+.pvz-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pvz-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 118px);
+  gap: 16px 22px;
+  justify-content: center;
+}

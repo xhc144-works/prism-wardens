@@ -67,8 +67,10 @@ export interface AssetManifest {
   particles: Record<string, string>;
   /** 音效 id（小写文件名，无扩展名）-> 路径 */
   sounds: Record<string, string>;
-  /** 音乐曲目（分层 OGG 与循环点） */
+  /** 音乐曲目（分层 OGG 与循环点，命令行导入时生成） */
   music: Record<string, MusicTune>;
+  /** 原版音乐模块（应用内导入时用 WebAssembly 实时播放） */
+  mo3?: { main: string; hihats?: string };
   fonts: Record<string, FontEntry>;
   /** 本地化文本 */
   strings: string;

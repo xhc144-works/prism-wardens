@@ -1,6 +1,6 @@
 /* 棱镜守卫 Prism Wardens — Electron 主进程 */
 'use strict';
-const { app, BrowserWindow, ipcMain, protocol, net, dialog, shell, Menu, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net, dialog, shell, Menu, screen, utilityProcess } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
@@ -155,6 +155,60 @@ ipcMain.handle('file:open', async (_e, filters) => {
   return { name: path.basename(p), content: await fsp.readFile(p, 'utf8') };
 });
 
+/* ---------------------------- 原版资源导入 ---------------------------- */
+// 公开安装包不含任何原版素材；玩家可选择自己合法持有的《植物大战僵尸》安装包或游戏目录，
+// 由导入器在本机生成资源包（保存在用户数据目录），游戏随即切换为经典美术风格。
+
+const assetsDir = () => path.join(userData(), 'pvz-assets');
+
+function readManifest(dir) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+ipcMain.handle('assets:status', () => {
+  const m = readManifest(assetsDir());
+  const b = readManifest(path.join(DIST, 'pvz'));
+  const src = m || b;
+  return { imported: !!m, bundled: !!b, source: src ? src.source : '', importedAt: src ? src.importedAt : '', bytes: src && src.stats ? src.stats.bytes : 0 };
+});
+
+ipcMain.handle('assets:pick', async (_e, kind) => {
+  const r =
+    kind === 'dir'
+      ? await dialog.showOpenDialog(win, { title: '选择《植物大战僵尸》游戏目录（含 main.pak）', properties: ['openDirectory'] })
+      : await dialog.showOpenDialog(win, { title: '选择《植物大战僵尸》安装包', properties: ['openFile'], filters: [{ name: '安装包 / 压缩包', extensions: ['exe', '7z', 'zip'] }] });
+  if (r.canceled || !r.filePaths[0]) return null;
+  return r.filePaths[0];
+});
+
+ipcMain.handle('assets:import', (_e, source) => {
+  const sevenZip = require('7zip-bin').path7za.replace('app.asar', 'app.asar.unpacked');
+  const worker = utilityProcess.fork(path.join(__dirname, 'gen', 'import-worker.cjs'), [], { serviceName: 'pvz-import' });
+  return new Promise((resolve) => {
+    worker.on('message', (m) => {
+      if (win && !win.isDestroyed()) win.webContents.send('assets:progress', m);
+      if (m.type === 'done' || m.type === 'error') {
+        worker.kill();
+        log('asset import', m.type, m.text || '');
+        resolve(m);
+      }
+    });
+    worker.on('exit', (code) => resolve({ type: 'error', text: `导入进程意外退出（${code}）` }));
+    worker.postMessage({ source: String(source), outDir: assetsDir(), tempDir: path.join(app.getPath('temp'), 'pvz-import'), sevenZip });
+  });
+});
+
+ipcMain.handle('assets:remove', async () => {
+  await fsp.rm(assetsDir(), { recursive: true, force: true });
+  return true;
+});
+
+ipcMain.handle('app:reload', () => win && win.webContents.reload());
+
 /* ---------------------------- 自动更新 ---------------------------- */
 
 let updater = null;
@@ -263,6 +317,12 @@ app.whenReady().then(() => {
     const url = new URL(req.url);
     let rel = decodeURIComponent(url.pathname);
     if (rel === '/' || rel === '') rel = '/index.html';
+    // 玩家导入的原版资源优先于安装包内的资源
+    if (rel.startsWith('/pvz/') && fs.existsSync(path.join(assetsDir(), 'manifest.json'))) {
+      const af = path.normalize(path.join(assetsDir(), rel.slice(5)));
+      if (!af.startsWith(assetsDir())) return new Response('forbidden', { status: 403 });
+      return net.fetch(pathToFileURL(af).toString());
+    }
     const file = path.normalize(path.join(DIST, rel));
     if (!file.startsWith(DIST)) return new Response('forbidden', { status: 403 });
     return net.fetch(pathToFileURL(file).toString());

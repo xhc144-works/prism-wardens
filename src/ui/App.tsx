@@ -6,6 +6,7 @@ import { ClassicMenu } from './classic/ClassicMenu';
 import { ClassicLevels } from './classic/ClassicLevels';
 import { ClassicDeck } from './classic/ClassicDeck';
 import { ClassicAlmanac } from './classic/ClassicAlmanac';
+import { ClassicModes } from './classic/ClassicModes';
 import { useClassicSkin } from '../app/game';
 import { LevelsScreen, ModesScreen } from './screens/Levels';
 import { DeckScreen } from './screens/Deck';
@@ -27,7 +28,7 @@ function renderRoute(r: Route) {
     case 'levels':
       return useClassicSkin() ? <ClassicLevels /> : <LevelsScreen />;
     case 'modes':
-      return <ModesScreen mode={r.mode} />;
+      return useClassicSkin() ? <ClassicModes mode={r.mode} /> : <ModesScreen mode={r.mode} />;
     case 'deck':
       return useClassicSkin() ? <ClassicDeck setup={r.setup} /> : <DeckScreen setup={r.setup} />;
     case 'battle':

@@ -42,4 +42,12 @@ contextBridge.exposeInMainWorld('prismNative', {
     open: (filters) => inv('file:open', filters),
   },
   dataPath: () => inv('app:dataPath'),
+  reload: () => inv('app:reload'),
+  assets: {
+    status: () => inv('assets:status'),
+    pick: (kind) => inv('assets:pick', kind === 'dir' ? 'dir' : 'file'),
+    import: (source) => inv('assets:import', String(source)),
+    remove: () => inv('assets:remove'),
+    onProgress: (cb) => ipcRenderer.on('assets:progress', (_e, m) => cb(m)),
+  },
 });

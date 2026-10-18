@@ -187,6 +187,14 @@ export function runImport(opt: ImportOptions): AssetManifest {
   log(`音效 ${Object.keys(manifest.sounds).length} 个`);
   const mo3 = vfs.get('sounds/mainmusic.mo3');
   const hihats = vfs.get('sounds/mainmusic_hihats.mo3');
+  if (mo3) {
+    write('sounds/mainmusic.mo3', mo3);
+    manifest.mo3 = { main: 'sounds/mainmusic.mo3' };
+    if (hihats) {
+      write('sounds/mainmusic_hihats.mo3', hihats);
+      manifest.mo3.hihats = 'sounds/mainmusic_hihats.mo3';
+    }
+  }
   if (mo3 && opt.renderMusic) {
     const tmp = join(out, '_tmp_mainmusic.mo3');
     const tmpH = join(out, '_tmp_mainmusic_hihats.mo3');

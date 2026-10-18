@@ -8,6 +8,7 @@ import { exportFile, importFile } from '../../platform/storage';
 import { migrateProfile } from '../../core/meta/profile';
 import { Btn, Select, Slider, Toggle, TopBar, fmtDate, toast } from '../components/ui';
 import { SCREENS } from './registry';
+import { AssetPanel } from './AssetPanel';
 
 const RESOLUTIONS = ['1024x640', '1280x720', '1366x768', '1600x900', '1920x1080', '2560x1440'];
 
@@ -27,6 +28,7 @@ function SettingsScreen() {
         <Btn small kind="ghost" onClick={() => store.update(['settings'], (d) => (d.settings = { ...DEFAULT_SETTINGS, cheats: d.settings.cheats, cheatsEnabled: d.settings.cheatsEnabled }))}>恢复默认设置</Btn>
       </TopBar>
       <div class="content grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', alignContent: 'start' }}>
+        <AssetPanel />
         <div class="panel">
           <h3>声音</h3>
           {(['master', 'music', 'sfx'] as const).map((k) => (

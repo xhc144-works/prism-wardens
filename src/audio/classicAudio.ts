@@ -4,6 +4,7 @@
  */
 import { PVZ } from '../pvz/assets';
 import type { MusicTune } from '../pvz/format';
+import { Mo3Music } from './mo3Music';
 
 interface SfxSpec {
   ids: string[];
@@ -85,11 +86,14 @@ export class ClassicAudio {
   private pending = new Map<string, Promise<AudioBuffer | null>>();
   private last = new Map<string, number>();
   private active = new Map<string, number>();
+  private mo3: Mo3Music;
   constructor(
     private ctx: AudioContext,
     private sfxBus: AudioNode,
     private musicBus: AudioNode,
-  ) {}
+  ) {
+    this.mo3 = new Mo3Music(ctx, musicBus);
+  }
 
   private load(id: string): Promise<AudioBuffer | null> {
     const got = this.buffers.get(id);
@@ -156,7 +160,7 @@ export class ClassicAudio {
   private loadToken = 0;
 
   hasMusic(id: string): boolean {
-    return !!PVZ.musicTune(id);
+    return !!PVZ.musicTune(id) || this.mo3.available();
   }
 
   playMusic(id: string | null): void {
@@ -165,7 +169,11 @@ export class ClassicAudio {
     this.tuneId = id ?? '';
     if (!id) return;
     const tune = PVZ.musicTune(id);
-    if (!tune) return;
+    if (!tune) {
+      // 没有预渲染的分层 OGG：用 libopenmpt 实时播放原版模块
+      this.mo3.play(id);
+      return;
+    }
     const token = ++this.loadToken;
     const burst = id === 'night' ? PVZ.musicTune('night_burst') : null;
     void this.startTune(tune, burst, token);
@@ -202,6 +210,7 @@ export class ClassicAudio {
 
   stopMusic(): void {
     this.loadToken++;
+    this.mo3.play(null);
     for (const s of this.sources) {
       try {
         s.stop();
@@ -221,7 +230,12 @@ export class ClassicAudio {
    */
   setIntensity(zombies: number, hugeWave: boolean): void {
     const g = this.gains;
-    if (!this.sources.length) return;
+    if (!this.sources.length) {
+      const want = zombies >= 10 || hugeWave ? true : zombies < 4 ? false : this.layerOn;
+      this.layerOn = want;
+      this.mo3.setLayer(want);
+      return;
+    }
     const t = this.ctx.currentTime;
     const want = zombies >= 10 || hugeWave ? true : zombies < 4 ? false : this.layerOn;
     if (want === this.layerOn) return;

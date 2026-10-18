@@ -33,7 +33,29 @@ export interface NativeBridge {
     open(filters?: { name: string; extensions: string[] }[]): Promise<{ name: string; content: string } | null>;
   };
   dataPath(): Promise<string>;
+  reload(): Promise<void>;
+  assets: {
+    status(): Promise<AssetStatus>;
+    pick(kind: 'dir' | 'file'): Promise<string | null>;
+    import(source: string): Promise<AssetImportMessage>;
+    remove(): Promise<boolean>;
+    onProgress(cb: (m: AssetImportMessage) => void): void;
+  };
 }
+
+export interface AssetStatus {
+  imported: boolean;
+  bundled: boolean;
+  source: string;
+  importedAt: string;
+  bytes: number;
+}
+
+export type AssetImportMessage =
+  | { type: 'log'; text: string }
+  | { type: 'progress'; done: number; total: number; stage: string }
+  | { type: 'done'; reanims: number; images: number; sounds: number; source: string; music: boolean }
+  | { type: 'error'; text: string };
 
 declare global {
   interface Window {
