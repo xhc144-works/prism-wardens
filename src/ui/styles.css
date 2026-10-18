@@ -962,3 +962,106 @@ table.table tr:hover td {
   border: 2px solid #2b170a;
   border-radius: 50%;
 }
+
+/* ---------- 经典皮肤：对话框、提示、主菜单 ---------- */
+.pvz-dialog-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pvz-dialog {
+  position: relative;
+  max-width: 94vw;
+  max-height: 92vh;
+  min-height: 260px;
+  display: flex;
+}
+.pvz-dlg-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 107px 1fr 120px;
+  grid-template-rows: 97px 1fr 114px;
+  pointer-events: none;
+}
+.pvz-dlg-grid > div {
+  background-repeat: repeat;
+}
+.pvz-dlg-grid .tl { background: var(--pvz-dlg-tl) no-repeat; }
+.pvz-dlg-grid .tm { background: var(--pvz-dlg-tm) repeat-x; }
+.pvz-dlg-grid .tr { background: var(--pvz-dlg-tr) no-repeat; }
+.pvz-dlg-grid .cl { background: var(--pvz-dlg-cl) repeat-y; }
+.pvz-dlg-grid .cm { background: var(--pvz-dlg-cm) repeat; }
+.pvz-dlg-grid .cr { background: var(--pvz-dlg-cr) repeat-y; }
+.pvz-dlg-grid .bl { background: var(--pvz-dlg-bl) no-repeat; }
+.pvz-dlg-grid .bm { background: var(--pvz-dlg-bm) repeat-x; }
+.pvz-dlg-grid .br { background: var(--pvz-dlg-br) no-repeat; }
+.pvz-dlg-header {
+  position: absolute;
+  left: 50%;
+  top: -30px;
+  width: 187px;
+  height: 64px;
+  margin-left: -93px;
+  background: var(--pvz-dlg-header) no-repeat;
+  pointer-events: none;
+}
+.pvz-dlg-body {
+  position: relative;
+  flex: 1;
+  padding: 44px 46px 56px 40px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  color: #e9e2c7;
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+.pvz-dlg-title {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 900;
+  color: #e7df52;
+  text-shadow: 0 2px 0 #3c2a10, 0 0 6px rgba(0, 0, 0, 0.6);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+.pvz-dlg-content {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+.pvz-dlg-footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.pvz-toolbox {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  padding: 6px 4px;
+}
+.pvz-toolbox .pvz-btn {
+  width: 100%;
+}
+.pvz-tooltip {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  background: #fffbd0;
+  color: #000;
+  border: 1px solid #000;
+  padding: 3px 8px;
+  font: 12px 'Microsoft YaHei', sans-serif;
+  max-width: 280px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+}
+.classic-menu {
+  overflow: hidden;
+  background: #000;
+}

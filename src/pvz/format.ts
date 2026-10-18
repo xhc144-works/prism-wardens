@@ -40,6 +40,14 @@ export interface ImageEntry {
   cols?: number;
 }
 
+export interface MusicTune {
+  main: string;
+  drums?: string;
+  hihats?: string;
+  loopStart: number;
+  loopEnd: number;
+}
+
 export interface FontEntry {
   /** 字体描述文本（已转为 UTF-8） */
   desc: string;
@@ -59,8 +67,8 @@ export interface AssetManifest {
   particles: Record<string, string>;
   /** 音效 id（小写文件名，无扩展名）-> 路径 */
   sounds: Record<string, string>;
-  /** 音乐曲目 -> 路径 */
-  music: Record<string, string>;
+  /** 音乐曲目（分层 OGG 与循环点） */
+  music: Record<string, MusicTune>;
   fonts: Record<string, FontEntry>;
   /** 本地化文本 */
   strings: string;

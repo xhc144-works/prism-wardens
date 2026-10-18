@@ -52,6 +52,8 @@ export class GameController {
   private fpsAcc = 0;
   private fpsN = 0;
   humanOps = 0;
+  private hugeWaveUntil = 0;
+  private groanT = 4;
   aiOps = 0;
   lastDenied = '';
   lastDeniedAt = 0;
@@ -183,8 +185,20 @@ export class GameController {
     }
     // 音效（高倍速下降低频率）
     if (this.speed <= 4) for (const f of fx) {
-      const name = sfxForFx(f.e as never);
+      const name = sfxForFx(f.e as never, { water: (r, c) => w.grid[r]?.[c]?.terrain === 'w', finalWave: w.waveIndex >= w.totalWaves });
       if (name) audio.sfx(name);
+      if (f.e.t === 'flagWarn') this.hugeWaveUntil = w.time + 7;
+    }
+    // 原版音乐分层与僵尸呻吟
+    if (!this.paused && !w.finished) {
+      let onScreen = 0;
+      for (const e of w.enemies) if (!e.dead && e.x < w.cols + 0.3) onScreen++;
+      audio.intensity(onScreen, w.time < this.hugeWaveUntil);
+      this.groanT -= dt * this.speed;
+      if (this.groanT <= 0) {
+        this.groanT = 3 + Math.random() * 6;
+        if (onScreen > 0 && this.speed <= 2) audio.sfx('groan');
+      }
     }
     this.emitUi();
     if (w.finished && !this.ended) {

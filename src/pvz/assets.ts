@@ -2,7 +2,7 @@
  * 原版资源包运行时加载器。资源包由玩家本地导入（见 tools/import），
  * 不存在时 available=false，游戏自动回退到内置的原创美术。
  */
-import type { AssetManifest, ImageEntry, ParticleFile, ReanimFile } from './format';
+import type { AssetManifest, ImageEntry, MusicTune, ParticleFile, ReanimFile } from './format';
 import { compileReanim, type ReanimDef } from './reanim';
 
 export type Drawable = HTMLImageElement | HTMLCanvasElement | ImageBitmap;
@@ -232,9 +232,8 @@ export class PvzAssets {
     return p ? this.url(p) : null;
   }
 
-  musicUrl(id: string): string | null {
-    const p = this.manifest?.music[id];
-    return p ? this.url(p) : null;
+  musicTune(id: string): MusicTune | null {
+    return this.manifest?.music[id] ?? null;
   }
 
   str(key: string, fallback = ''): string {

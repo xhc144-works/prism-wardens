@@ -84,6 +84,7 @@ export function BattleScreen(props: { setup: BattleSetup }) {
       };
     }
     audio.music(w.bossIds.length ? 'boss' : (w.level.time === 'night' && w.map.theme === 'day' ? 'night' : w.map.theme) as never);
+    if (useClassicSkin()) audio.sfx('ready');
     const upd = () => {
       if (!lumenRef.current || !ctrl.renderer) return;
       const a = lumenRef.current.getBoundingClientRect();

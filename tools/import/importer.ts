@@ -2,7 +2,7 @@
  * 原版资源导入器：从玩家自己合法持有的《植物大战僵尸》PC 版（游戏目录或 main.pak）
  * 生成本游戏可用的资源包。只在本地运行，输出目录不进入版本库，也不随公开安装包分发。
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import type { AssetManifest, FontEntry, ImageEntry } from '../../src/pvz/format';
@@ -19,7 +19,7 @@ export interface ImportOptions {
   gameDir: string;
   outDir: string;
   /** 将 MO3 音乐渲染为 OGG 的回调（需要 ffmpeg+libopenmpt，可缺省） */
-  renderMusic?: (mo3: string, outDir: string) => Record<string, string>;
+  renderMusic?: (mo3: string, hihats: string | null, outDir: string) => AssetManifest['music'];
   log?: (msg: string) => void;
   progress?: (done: number, total: number, stage: string) => void;
 }
@@ -185,17 +185,22 @@ export function runImport(opt: ImportOptions): AssetManifest {
     }
   }
   log(`音效 ${Object.keys(manifest.sounds).length} 个`);
-  const mo3 = [...vfs.keys()].find((k) => k === 'sounds/mainmusic.mo3');
+  const mo3 = vfs.get('sounds/mainmusic.mo3');
+  const hihats = vfs.get('sounds/mainmusic_hihats.mo3');
   if (mo3 && opt.renderMusic) {
     const tmp = join(out, '_tmp_mainmusic.mo3');
-    writeFileSync(tmp, vfs.get(mo3)!);
+    const tmpH = join(out, '_tmp_mainmusic_hihats.mo3');
+    writeFileSync(tmp, mo3);
+    if (hihats) writeFileSync(tmpH, hihats);
     try {
-      const tracks = opt.renderMusic(tmp, join(out, 'music'));
+      const tracks = opt.renderMusic(tmp, hihats ? tmpH : null, join(out, 'music'));
       for (const [id, p] of Object.entries(tracks)) manifest.music[id] = p;
       log(`音乐 ${Object.keys(tracks).length} 首`);
     } catch (e) {
       log(`音乐转换失败（将使用合成音乐）: ${(e as Error).message}`);
     }
+    rmSync(tmp, { force: true });
+    rmSync(tmpH, { force: true });
   }
 
   // 6. 字体描述

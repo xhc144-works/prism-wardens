@@ -1,9 +1,15 @@
 /**
  * 合成音频引擎：全部音效与音乐由 WebAudio 实时合成，不需要任何音频文件。
  */
-export type MusicMood = 'menu' | 'day' | 'night' | 'lake' | 'fog' | 'sky' | 'boss' | 'none';
+import { PVZ } from '../pvz/assets';
+import { ClassicAudio } from './classicAudio';
 
-const SCALES: Record<Exclude<MusicMood, 'none'>, { root: number; scale: number[]; tempo: number; prog: number[] }> = {
+export type MusicMood = 'menu' | 'day' | 'night' | 'lake' | 'fog' | 'sky' | 'boss' | 'choose' | 'minigame' | 'puzzle' | 'zen' | 'conveyor' | 'none';
+
+/** 情绪 -> 原版曲目 */
+const CLASSIC_TUNE: Record<string, string> = { menu: 'title', day: 'day', night: 'night', lake: 'pool', fog: 'fog', sky: 'roof', boss: 'boss', choose: 'choose', minigame: 'minigame', puzzle: 'puzzle', zen: 'zen', conveyor: 'conveyor' };
+
+const SCALES: Record<'menu' | 'day' | 'night' | 'lake' | 'fog' | 'sky' | 'boss', { root: number; scale: number[]; tempo: number; prog: number[] }> = {
   menu: { root: 57, scale: [0, 2, 4, 7, 9], tempo: 84, prog: [0, 5, 3, 4] },
   day: { root: 60, scale: [0, 2, 4, 7, 9], tempo: 104, prog: [0, 5, 3, 4] },
   night: { root: 57, scale: [0, 3, 5, 7, 10], tempo: 88, prog: [0, 5, 3, 6] },
@@ -28,6 +34,10 @@ export class AudioEngine {
   private step = 0;
   private timer: number | null = null;
   private reverb!: ConvolverNode;
+  /** 原版音频（导入资源后可用） */
+  classic: ClassicAudio | null = null;
+  /** 是否优先使用原版音频 */
+  preferClassic = true;
 
   ensure(): boolean {
     if (this.ctx) {
@@ -67,7 +77,24 @@ export class AudioEngine {
     this.reverb.connect(rg);
     rg.connect(this.musicBus);
     this.applyVolumes();
+    if (PVZ.available) this.classic = new ClassicAudio(ctx, this.sfxBus, this.musicBus);
+    if (this.pendingMood) {
+      const m = this.pendingMood;
+      this.pendingMood = null;
+      this.music(m);
+    }
     return true;
+  }
+
+  private pendingMood: MusicMood | null = null;
+
+  private useClassic(): boolean {
+    return !!this.classic && this.preferClassic;
+  }
+
+  /** 原版音乐动态分层（场上僵尸数、大波来袭） */
+  intensity(zombies: number, hugeWave: boolean): void {
+    if (this.useClassic()) this.classic!.setIntensity(zombies, hugeWave);
   }
 
   setVolumes(v: Partial<{ master: number; music: number; sfx: number }>): void {
@@ -131,6 +158,9 @@ export class AudioEngine {
   /** 播放音效 */
   sfx(name: string): void {
     if (!this.ctx || this.volumes.sfx <= 0 || this.volumes.master <= 0) return;
+    if (this.useClassic() && this.classic!.play(name)) return;
+    const colon = name.indexOf(':');
+    if (colon > 0) name = name.slice(0, colon);
     switch (name) {
       case 'shoot':
         if (!this.throttle(name, 45)) return;
@@ -237,14 +267,25 @@ export class AudioEngine {
   /* ---------------------------- 生成式音乐 ---------------------------- */
 
   music(mood: MusicMood): void {
-    if (!this.ctx) return;
+    if (!this.ctx) {
+      this.pendingMood = mood;
+      return;
+    }
     if (mood === this.mood) return;
     this.mood = mood;
     if (this.timer != null) {
       clearInterval(this.timer);
       this.timer = null;
     }
-    if (mood === 'none') return;
+    if (this.classic) {
+      const tune = CLASSIC_TUNE[mood];
+      if (this.useClassic() && tune && this.classic.hasMusic(tune)) {
+        this.classic.playMusic(tune);
+        return;
+      }
+      this.classic.stopMusic();
+    }
+    if (mood === 'none' || !(mood in SCALES)) return;
     this.step = 0;
     this.nextNote = this.ctx.currentTime + 0.1;
     this.timer = window.setInterval(() => this.schedule(), 100);
@@ -253,7 +294,8 @@ export class AudioEngine {
   private schedule(): void {
     const ctx = this.ctx;
     if (!ctx || this.mood === 'none') return;
-    const S = SCALES[this.mood];
+    const S = SCALES[this.mood as keyof typeof SCALES];
+    if (!S) return;
     const spb = 60 / S.tempo / 2; // 八分音符
     while (this.nextNote < ctx.currentTime + 0.3) {
       const t = this.nextNote;
@@ -354,19 +396,28 @@ export class AudioEngine {
 export const audio = new AudioEngine();
 
 /** 把游戏表现事件映射为音效 */
-export function sfxForFx(e: { t: string; [k: string]: unknown }): string | null {
+export function sfxForFx(e: { t: string; [k: string]: unknown }, ctx?: { water?: (row: number, col: number) => boolean; finalWave?: boolean }): string | null {
   switch (e.t) {
     case 'shoot':
       return 'shoot';
     case 'hit':
       return e.kind === 'fire' ? 'fire' : 'hit';
     case 'explode':
+      return `explode:${e.kind}`;
     case 'lane':
-      return 'explode';
+      return 'lane';
     case 'freeze':
       return 'freeze';
     case 'place':
-      return 'place';
+      return ctx?.water?.(e.row as number, e.col as number) ? 'place:water' : 'place';
+    case 'remove':
+      return 'shovel';
+    case 'devour':
+      return 'devour';
+    case 'magnet':
+      return 'magnet';
+    case 'splash':
+      return 'splash';
     case 'collect':
       return 'collect';
     case 'enemyDie':
@@ -376,7 +427,7 @@ export function sfxForFx(e: { t: string; [k: string]: unknown }): string | null 
     case 'armorBreak':
       return 'armor';
     case 'wave':
-      return e.flag ? 'flag' : e.index === 1 ? 'wave' : null;
+      return e.flag ? (ctx?.finalWave ? 'finalwave' : 'flag') : e.index === 1 ? 'wave' : null;
     case 'flagWarn':
       return 'flag';
     case 'lightning':
@@ -392,8 +443,9 @@ export function sfxForFx(e: { t: string; [k: string]: unknown }): string | null 
     case 'combo':
       return 'combo';
     case 'skill':
-    case 'gale':
       return 'skill';
+    case 'gale':
+      return 'gale';
     case 'boss':
       return 'boss';
     case 'coin':

@@ -39,8 +39,8 @@ if (statSync(src).isFile()) {
 }
 
 const musicScript = resolve('tools/import/render_music.py');
-const renderMusic = (mo3: string, dir: string) => {
-  const r = spawnSync('python3', ['-I', musicScript, mo3, dir], { encoding: 'utf8' });
+const renderMusic = (mo3: string, hihats: string | null, dir: string) => {
+  const r = spawnSync('python3', ['-I', musicScript, mo3, hihats ?? '-', dir], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   if (r.status !== 0) throw new Error(r.stderr || '需要 python3 + libopenmpt + ffmpeg');
   return JSON.parse(r.stdout.trim().split('\n').pop()!);
 };
@@ -48,6 +48,5 @@ const renderMusic = (mo3: string, dir: string) => {
 const t0 = Date.now();
 rmSync(outDir, { recursive: true, force: true });
 const m = runImport({ gameDir, outDir, renderMusic, log: (s) => console.log(s) });
-rmSync(join(outDir, '_tmp_mainmusic.mo3'), { force: true });
 console.log(`资源包已生成到 ${outDir}（${Object.keys(m.reanims).length} 动画，${Object.keys(m.images).length} 图片，${Object.keys(m.sounds).length} 音效，${Object.keys(m.music).length} 音乐），用时 ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 if (existsSync(resolve('local/.extract'))) rmSync(resolve('local/.extract'), { recursive: true, force: true });

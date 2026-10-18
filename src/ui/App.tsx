@@ -2,6 +2,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { onRoute, route, type Route } from '../app/nav';
 import { Toasts } from './components/ui';
 import { MenuScreen } from './screens/Menu';
+import { ClassicMenu } from './classic/ClassicMenu';
+import { useClassicSkin } from '../app/game';
 import { LevelsScreen, ModesScreen } from './screens/Levels';
 import { DeckScreen } from './screens/Deck';
 import { BattleScreen } from './screens/Battle';
@@ -18,7 +20,7 @@ import './screens/Replays';
 function renderRoute(r: Route) {
   switch (r.name) {
     case 'menu':
-      return <MenuScreen />;
+      return useClassicSkin() ? <ClassicMenu /> : <MenuScreen />;
     case 'levels':
       return <LevelsScreen />;
     case 'modes':

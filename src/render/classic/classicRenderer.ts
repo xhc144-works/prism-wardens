@@ -377,7 +377,7 @@ export class ClassicRenderer implements BattleRenderer {
       this.ready = true;
     });
     void this.pfx.preload(PARTICLE_PRELOAD);
-    void PVZ.preloadImages([this.L.bg, 'IMAGE_PLANTSHADOW', 'IMAGE_PEA_SHADOWS', 'IMAGE_TOMBSTONES', 'IMAGE_TOMBSTONE_MOUNDS', 'IMAGE_FLAGMETER', 'IMAGE_FLAGMETERPARTS', 'IMAGE_FLAGMETERLEVELPROGRESS', 'IMAGE_REANIM_APPROACHING', 'IMAGE_REANIM_FINALWAVE', 'IMAGE_FOG', 'IMAGE_ICE', 'IMAGE_CRATER', 'IMAGE_ROCKSMALL', 'IMAGE_DIRTBIG', 'IMAGE_PROJECTILEPEA', 'IMAGE_PROJECTILESNOWPEA', 'IMAGE_PROJECTILECACTUS', 'IMAGE_PROJECTILE_STAR', 'IMAGE_SEEDBANK', 'IMAGE_SEEDPACKET_LARGER', 'IMAGE_SHOVELBANK', 'IMAGE_SHOVEL']);
+    void PVZ.preloadImages([this.L.bg, 'IMAGE_PLANTSHADOW', 'IMAGE_PEA_SHADOWS', 'IMAGE_TOMBSTONES', 'IMAGE_TOMBSTONE_MOUNDS', 'IMAGE_FLAGMETER', 'IMAGE_FLAGMETERPARTS', 'IMAGE_FLAGMETERLEVELPROGRESS', 'IMAGE_REANIM_APPROACHING', 'IMAGE_REANIM_FINALWAVE', 'IMAGE_FOG', 'IMAGE_ICE', 'IMAGE_CRATER', 'IMAGE_ROCKSMALL', 'IMAGE_DIRTBIG', 'IMAGE_PROJECTILEPEA', 'IMAGE_PROJECTILESNOWPEA', 'IMAGE_PROJECTILECACTUS', 'IMAGE_PROJECTILE_STAR', 'IMAGE_SEEDBANK', 'IMAGE_SEEDPACKET_LARGER', 'IMAGE_POOL', 'IMAGE_POOL_NIGHT', 'IMAGE_POOL_BASE', 'IMAGE_POOL_BASE_NIGHT', 'IMAGE_POOL_SHADING', 'IMAGE_POOL_SHADING_NIGHT', 'IMAGE_POOL_CAUSTIC_EFFECT', 'IMAGE_SHOVELBANK', 'IMAGE_SHOVEL']);
     void BitmapFont.load(FONTS.sun);
     void BitmapFont.load(FONTS.cost);
     this.packetCache.clear();
@@ -611,11 +611,61 @@ export class ClassicRenderer implements BattleRenderer {
       ctx.fillStyle = '#3d7a2a';
       ctx.fillRect(-BG_OFFSET, 0, 1400, 600);
     }
+    if (L.theme === 'lake' || L.theme === 'fog') this.drawPool(L.theme === 'fog');
     // 超出背景的区域（极宽屏或 10 列地图）用背景边缘延展
     if (bg && L.viewW > 1400 - BG_OFFSET) {
       ctx.drawImage(bg.img, 1399, 0, 1, 600, 1400 - BG_OFFSET, 0, L.viewW, 600);
     }
     void w;
+  }
+
+  /** 泳池水面：原版在背景上叠加泳池图与两层按正弦波扭曲的水面，再叠加焦散光斑 */
+  private drawPool(night: boolean): void {
+    const ctx = this.ctx;
+    const pool = this.img(night ? 'IMAGE_POOL_NIGHT' : 'IMAGE_POOL');
+    if (pool) ctx.drawImage(pool.img, 34, 278);
+    const phase = this.time * 100 * 2 * Math.PI;
+    const strips = 48;
+    for (const [id, amp, k] of [
+      [night ? 'IMAGE_POOL_BASE_NIGHT' : 'IMAGE_POOL_BASE', 1, 0],
+      [night ? 'IMAGE_POOL_SHADING_NIGHT' : 'IMAGE_POOL_SHADING', 1, 1],
+    ] as [string, number, number][]) {
+      const li = this.img(id);
+      if (!li || !pool) continue;
+      const W = pool.w;
+      const H = pool.h;
+      const sw = li.w / strips;
+      const dw = W / strips;
+      for (let i = 0; i < strips; i++) {
+        const xPhase = ((i / strips) * 15 * 3 * 2 * Math.PI) / 15;
+        const f = k === 0 ? 0.2 : 1;
+        const off =
+          k === 0
+            ? Math.sin(xPhase + phase / 110) * 0.01 + Math.sin(xPhase + phase / 900) * 0.015 + Math.sin(xPhase + phase / 800) * 0.005
+            : Math.sin(xPhase * f + phase / 110) * 0.005 + Math.sin(xPhase * f + phase / 900) * 0.015 + Math.sin(xPhase * f + phase / 800) * 0.02;
+        const edge = Math.min(1, Math.min(i, strips - 1 - i) / 3);
+        const sy = Math.max(0, off * amp * edge * li.h);
+        ctx.drawImage(li.img, i * sw, sy, sw + 0.5, li.h - sy, 35 + i * dw, 279, dw + 0.5, H - sy * (H / li.h));
+      }
+    }
+    const caustic = this.img('IMAGE_POOL_CAUSTIC_EFFECT');
+    if (caustic) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(45, 288, 704, 150);
+      ctx.clip();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const [a, sp, sc] of [
+        [night ? 0.06 : 0.16, 9, 1],
+        [night ? 0.04 : 0.1, -6, 1.4],
+      ] as [number, number, number][]) {
+        ctx.globalAlpha = a;
+        const ox = (this.time * sp) % (caustic.w * sc);
+        const oy = (this.time * sp * 0.6) % (caustic.h * sc);
+        for (let x = 45 - caustic.w * sc + ox; x < 749; x += caustic.w * sc) for (let y = 288 - caustic.h * sc + oy; y < 438; y += caustic.h * sc) ctx.drawImage(caustic.img, x, y, caustic.w * sc, caustic.h * sc);
+      }
+      ctx.restore();
+    }
   }
 
   private drawCellFeatures(w: World): void {
