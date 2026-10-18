@@ -30,6 +30,12 @@ export interface PlantSkin {
   nameKey?: string;
   /** 卡牌缩略图用动作 */
   thumb?: string;
+  /** 成长：成长动作与成长后的待机动作（阳光菇） */
+  grow?: { anim: string; idle: string };
+  /** 出场动作（咬咬碑落地） */
+  intro?: string;
+  /** 按剩余生命隐藏部件（钢地刺的大刺） */
+  wear?: { below: number; hide: string[] }[];
 }
 
 export const PLANT_SKINS: Record<string, PlantSkin> = {
@@ -81,6 +87,34 @@ export const PLANT_SKINS: Record<string, PlantSkin> = {
   meteor_lobber: { reanim: 'Melonpult', idle: 'anim_idle', shoot: 'anim_shooting', rate: [10, 14], nameKey: 'MELON_PULT' },
   monolith: { reanim: 'Tallnut', idle: 'anim_idle', cracked: ['anim_idle', 'IMAGE_REANIM_TALLNUT_CRACKED1', 'IMAGE_REANIM_TALLNUT_CRACKED2'], nameKey: 'TALL_NUT' },
   gravity_well: { reanim: 'HypnoShroom', idle: 'anim_idle', nameKey: 'HYPNO_SHROOM' },
+  spore_puff: { reanim: 'PuffShroom', idle: 'anim_idle', shoot: 'anim_shooting', nameKey: 'PUFF_SHROOM' },
+  dawn_cap: { reanim: 'SunShroom', idle: 'anim_idle', grow: { anim: 'anim_grow', idle: 'anim_bigidle' }, rate: [10, 14], nameKey: 'SUN_SHROOM' },
+  fume_cap: { reanim: 'FumeShroom', idle: 'anim_idle', shoot: 'anim_shooting', nameKey: 'FUME_SHROOM' },
+  doom_cap: { reanim: 'DoomShroom', idle: 'anim_idle', nameKey: 'DOOM_SHROOM' },
+  squash_gem: { reanim: 'Squash', idle: 'anim_idle', nameKey: 'SQUASH' },
+  tide_puff: { reanim: 'SeaShroom', idle: 'anim_idle', shoot: 'anim_shooting', nameKey: 'SEA_SHROOM' },
+  gatling_prism: {
+    reanim: 'GatlingPea',
+    idle: 'anim_idle',
+    heads: [{ track: ['anim_stem', 'anim_idle'], idle: 'anim_head_idle', shoot: 'anim_shooting' }],
+    rate: [15, 20],
+    nameKey: 'GATLING_PEA',
+  },
+  gloom_cap: { reanim: 'GloomShroom', idle: 'anim_idle', shoot: 'anim_shooting', nameKey: 'GLOOM_SHROOM' },
+  winter_meteor: { reanim: 'WinterMelon', idle: 'anim_idle', shoot: 'anim_shooting', rate: [10, 14], nameKey: 'WINTER_MELON' },
+  spike_rock: {
+    reanim: 'SpikeRock',
+    idle: 'anim_idle',
+    shoot: 'anim_attack',
+    wear: [
+      { below: 2 / 3, hide: ['bigspike3'] },
+      { below: 1 / 3, hide: ['bigspike2'] },
+    ],
+    nameKey: 'SPIKEROCK',
+  },
+  kernel_lobber: { reanim: 'Cornpult', idle: 'anim_idle', shoot: 'anim_shooting', hide: ['Cornpult_butter'], rate: [10, 14], nameKey: 'KERNEL_PULT' },
+  tomb_eater: { reanim: 'Gravebuster', idle: 'anim_idle', intro: 'anim_land', nameKey: 'GRAVE_BUSTER' },
+  garlic_bulb: { reanim: 'Garlic', idle: 'anim_idle', cracked: ['anim_face', 'IMAGE_REANIM_GARLIC_BODY2', 'IMAGE_REANIM_GARLIC_BODY3'], nameKey: 'GARLIC' },
 };
 
 export type ArmorVisual = 'cone' | 'bucket' | 'door' | 'paper' | 'flag' | 'none';
@@ -107,6 +141,14 @@ export interface ZombieSkin {
   nameKey?: string;
   /** 行走动画的标称地面速度（像素/秒）未知时自动计算 */
   flying?: boolean;
+  /** 特殊状态动作：跑动/跳跃（撑杆、跳杆、海豚）、降落/抓取/升起（蹦极） */
+  anims?: { run?: string; jump?: string; jumpLoop?: boolean; drop?: string; grab?: string; raise?: string };
+  /** 跳跃能力失去后隐藏的部件（跳杆） */
+  hideAfterJump?: string[];
+  /** 在水中不裁剪下半身（自带水面动画） */
+  noWaterClip?: boolean;
+  /** 骑乘（海豚）：骑乘与跳跃时的图像偏移，跳过后改用的行走动作 */
+  ride?: { dx: number; afterWalk: string };
 }
 
 /** 普通僵尸 reanim 中默认隐藏的配件 */
@@ -235,6 +277,39 @@ export const ZOMBIE_SKINS: Record<string, ZombieSkin> = {
     charred: 'Zombie_charred',
     nameKey: 'FOOTBALL_ZOMBIE',
   },
+  pogo_husk: {
+    reanim: 'Zombie_pogo',
+    walk: ['anim_walk'],
+    eat: 'anim_eat',
+    death: ['anim_death'],
+    head: ['anim_head1', 'anim_head2', 'anim_hair', 'anim_head_glasses'],
+    anims: { run: 'anim_pogo', jump: 'anim_pogo', jumpLoop: true },
+    hideAfterJump: ['Zombie_pogo_stick', 'Zombie_pogo_stick2', 'Zombie_pogo_stick3', 'Zombie_pogo_stickhands'],
+    charred: 'Zombie_charred',
+    nameKey: 'POGO_ZOMBIE',
+  },
+  wave_rider: {
+    reanim: 'Zombie_dolphinrider',
+    walk: ['anim_walkdolphin'],
+    eat: 'anim_eat',
+    death: ['anim_death'],
+    head: ['anim_head1', 'anim_head2'],
+    anims: { run: 'anim_ride', jump: 'anim_dolphinjump' },
+    ride: { dx: 70, afterWalk: 'anim_walk' },
+    arm: { upper: 'Zombie_dolphinrider_outerarm_upper', img: 'IMAGE_REANIM_ZOMBIE_DOLPHINRIDER_OUTERARM_UPPER2', drop: ['Zombie_dolphinrider_outerarm_lower', 'Zombie_dolphinrider_outerarm_hand'] },
+    charred: 'Zombie_charred',
+    nameKey: 'DOLPHIN_RIDER_ZOMBIE',
+  },
+  bungee_husk: {
+    reanim: 'Zombie_bungi',
+    walk: ['anim_idle'],
+    eat: 'anim_idle',
+    death: ['anim_idle'],
+    head: [],
+    anims: { drop: 'anim_drop', grab: 'anim_grab', raise: 'anim_raise' },
+    noWaterClip: true,
+    nameKey: 'BUNGEE_ZOMBIE',
+  },
   boss_wyrm: { reanim: 'Zombie_digger', walk: ['anim_walk'], eat: 'anim_eat', death: ['anim_death'], scale: 1.7, tint: '#ffb0b0', head: [], hide: ['Zombie_digger_dirt', 'Zombie_digger_rise', 'Zombie_digger_dig'], nameKey: 'DIGGER_ZOMBIE' },
   boss_tempest: { reanim: 'Zombie_balloon', walk: ['anim_idle'], eat: 'anim_idle', death: ['anim_death'], scale: 1.8, tint: '#c9b8ff', flying: true, head: [], hide: ['balloon_pop'], nameKey: 'BALLOON_ZOMBIE' },
   boss_king: { reanim: 'Zombie_boss', walk: ['anim_idle'], eat: 'anim_idle', death: ['anim_death'], idle: 'anim_idle', head: [], nameKey: 'BOSS' },
@@ -261,6 +336,11 @@ export const PROJECTILE_SKINS: Record<string, ProjectileSkin> = {
   meteor: { image: 'IMAGE_REANIM_MELONPULT_MELON', spin: 4, shadow: true },
   moon: { image: 'IMAGE_PROJECTILE_STAR', spin: 10, shadow: true },
   enemy: { image: 'IMAGE_REANIM_ZOMBIE_CATAPULT_BASKETBALL', spin: 8, shadow: true },
+  spore: { image: 'IMAGE_PUFFSHROOM_PUFF1', shadow: true },
+  fume: {},
+  kernel: { image: 'IMAGE_REANIM_CORNPULT_KERNAL', spin: 8, shadow: true },
+  butter: { image: 'IMAGE_REANIM_CORNPULT_BUTTER', shadow: true },
+  icemeteor: { image: 'IMAGE_REANIM_WINTERMELON_PROJECTILE', spin: 4, shadow: true },
 };
 
 /** 每个主题对应的原版音乐曲目 */

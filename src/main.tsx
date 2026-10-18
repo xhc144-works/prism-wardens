@@ -28,7 +28,8 @@ async function boot(): Promise<void> {
     const level = CONTENT.level(quick);
     if (level) {
       const cfg = makeAIGameConfig(level, { strategy: 'balanced' }, Number(q.get('seed') ?? 1));
-      navigate({ name: 'battle', setup: { mode: 'adventure', level, deck: cfg.deck, control: q.get('ai') ? 'ai' : 'human', seed: Number(q.get('seed') ?? 1) } });
+      const deck = q.get('deck')?.split(',').filter((id) => CONTENT.units.has(id)) ?? cfg.deck;
+      navigate({ name: 'battle', setup: { mode: 'adventure', level, deck, control: q.get('ai') ? 'ai' : 'human', seed: Number(q.get('seed') ?? 1) } });
     }
   }
   const root = document.getElementById('app')!;

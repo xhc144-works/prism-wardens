@@ -27,6 +27,17 @@ export const CLASSIC_SFX: Record<string, SfxSpec> = {
   'explode:bomber': { ids: ['explosion'], vol: 0.9 },
   'explode:meteor': { ids: ['melonimpact', 'melonimpact2'], vol: 0.8 },
   'explode:steam': { ids: ['frozen'], vol: 0.6 },
+  'explode:doom': { ids: ['doomshroom'], vol: 1 },
+  'explode:squash': { ids: ['gargantuar_thump'], vol: 0.8 },
+  'shoot:fume': { ids: ['fume'], vol: 0.6, gap: 60 },
+  'shoot:spore': { ids: ['puff'], vol: 0.5, gap: 40 },
+  'shoot:kernel': { ids: ['kernelpult', 'kernelpult2'], vol: 0.55, gap: 40 },
+  'shoot:butter': { ids: ['kernelpult', 'kernelpult2'], vol: 0.55, gap: 40 },
+  'hit:butter': { ids: ['butter'], vol: 0.7 },
+  squash: { ids: ['squash_hmm', 'squash_hmm2'], vol: 0.8 },
+  tombBreak: { ids: ['gravebusterchomp'], vol: 0.8 },
+  bungee: { ids: ['bungee_scream', 'bungee_scream2', 'bungee_scream3'], vol: 0.7, gap: 400 },
+  divert: { ids: ['yuck', 'yuck2'], vol: 0.6, gap: 300 },
   explode: { ids: ['explosion'], vol: 0.9 },
   lane: { ids: ['jalapeno'], vol: 0.9 },
   freeze: { ids: ['frozen'], vol: 0.8 },
@@ -127,6 +138,8 @@ export class ClassicAudio {
   }
 
   play(name: string): boolean {
+    // 细分音效（如 shoot:fume）不存在时退回到通用音效（shoot）
+    if (!CLASSIC_SFX[name] && name.includes(':') && CLASSIC_SFX[name.slice(0, name.indexOf(':'))]) name = name.slice(0, name.indexOf(':'));
     const spec = CLASSIC_SFX[name];
     if (!spec) return false;
     const now = performance.now();

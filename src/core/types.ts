@@ -418,8 +418,8 @@ export type FxEvent =
   | { t: 'aura'; row: number; col: number; unit: number }
   | { t: 'tombBreak'; row: number; col: number }
   | { t: 'divert'; x: number; row: number; from: number }
-  | { t: 'steal'; row: number; col: number; unit: string }
-  | { t: 'bungee'; x: number; row: number }
+  | { t: 'steal'; row: number; col: number; unit: string; by: number }
+  | { t: 'bungee'; x: number; row: number; id: number }
   | { t: 'end'; won: boolean };
 
 export interface FxRecord {

@@ -97,7 +97,7 @@ function updateBungee(w: World, e: Enemy): void {
         e.target = 0;
         e.x = 2 + Math.floor(w.rng.next() * Math.max(1, w.cols - 4)) + 0.5;
       }
-      w.emit({ t: 'bungee', x: e.x, row: e.row });
+      w.emit({ t: 'bungee', x: e.x, row: e.row, id: e.id });
     }
     e.stateT += DT;
     if (e.stateT >= 1.6) {
@@ -118,7 +118,7 @@ function updateBungee(w: World, e: Enemy): void {
     }
     if (e.stateT >= 2.4) {
       if (target && !target.dead) {
-        w.emit({ t: 'steal', row: target.row, col: target.col, unit: target.def.id });
+        w.emit({ t: 'steal', row: target.row, col: target.col, unit: target.def.id, by: e.id });
         w.killUnit(target, e.def.id);
       }
       e.state = 'leave';

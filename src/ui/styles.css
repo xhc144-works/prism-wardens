@@ -1295,13 +1295,12 @@ table.table tr:hover td {
   filter: brightness(1.15);
 }
 .pvz-chooser-extra {
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  top: 352px;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+.pvz-chooser-extra:empty {
+  display: none;
 }
 .pvz-chip {
   border: 2px solid #3a1d06;
@@ -1338,7 +1337,9 @@ table.table tr:hover td {
 }
 .pvz-deck-side {
   left: 520px;
-  top: 360px;
+  top: 300px;
+  max-height: 292px;
+  overflow: auto;
   width: 268px;
   padding: 10px 12px;
   background: rgba(30, 32, 50, 0.82);

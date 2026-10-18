@@ -157,26 +157,6 @@ export function ClassicDeck(props: { setup: BattleSetup }) {
             );
           })}
         </div>
-        <div class="pvz-chooser-extra">
-          {SKILLS.filter((s) => p.unlockedSkills.includes(s.id)).map((s) => {
-            const sel = skills.includes(s.id);
-            const okS = !rules || rules.isSkillAllowed(s.id);
-            return (
-              <button class={`pvz-chip ${sel ? 'on' : ''}`} disabled={!okS} title={s.desc} onClick={() => m.setSkills(sel ? skills.filter((x) => x !== s.id) : skills.length < 2 ? [...skills, s.id] : skills)}>
-                {s.icon} {s.name}
-              </button>
-            );
-          })}
-          {ITEMS.filter((it) => (p.items[it.id] ?? 0) > 0).map((it) => {
-            const have = p.items[it.id] ?? 0;
-            const n = items[it.id] ?? 0;
-            return (
-              <button class={`pvz-chip ${n > 0 ? 'on' : ''}`} title={it.desc} onClick={() => m.setItems({ ...items, [it.id]: n >= have ? 0 : n + 1 })}>
-                {it.icon} {it.name} {n}/{have}
-              </button>
-            );
-          })}
-        </div>
         <button class={`pvz-rock ${deck.length ? '' : 'disabled'}`} onClick={() => (audio.sfx('gravebutton'), m.start())}>
           一起摇滚吧！
         </button>
@@ -227,6 +207,26 @@ export function ClassicDeck(props: { setup: BattleSetup }) {
           <button class="pvz-btn small" onClick={() => setMore(!more)}>
             {more ? '收起' : '更多'}
           </button>
+        </div>
+        <div class="pvz-chooser-extra">
+          {SKILLS.filter((s) => p.unlockedSkills.includes(s.id)).map((s) => {
+            const sel = skills.includes(s.id);
+            const okS = !rules || rules.isSkillAllowed(s.id);
+            return (
+              <button class={`pvz-chip ${sel ? 'on' : ''}`} disabled={!okS} title={s.desc} onClick={() => m.setSkills(sel ? skills.filter((x) => x !== s.id) : skills.length < 2 ? [...skills, s.id] : skills)}>
+                {s.icon} {s.name}
+              </button>
+            );
+          })}
+          {ITEMS.filter((it) => (p.items[it.id] ?? 0) > 0).map((it) => {
+            const have = p.items[it.id] ?? 0;
+            const n = items[it.id] ?? 0;
+            return (
+              <button class={`pvz-chip ${n > 0 ? 'on' : ''}`} title={it.desc} onClick={() => m.setItems({ ...items, [it.id]: n >= have ? 0 : n + 1 })}>
+                {it.icon} {it.name} {n}/{have}
+              </button>
+            );
+          })}
         </div>
         {m.reasons.length > 0 && <div class="pvz-side-info" style={{ fontSize: 11 }}>AI 选卡：{m.reasons.slice(0, 3).join('；')}</div>}
       </div>

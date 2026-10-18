@@ -61,6 +61,8 @@ export class GameController {
   constructor(config: GameConfig) {
     this.world = new World(config);
     this.speed = store.settings.defaultSpeed || 1;
+    // 开发模式：暴露当前对局，便于自动化截图与调试
+    if (import.meta.env?.DEV) (globalThis as { __game?: GameController }).__game = this;
   }
 
   attach(canvas: HTMLCanvasElement): void {

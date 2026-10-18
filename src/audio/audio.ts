@@ -399,9 +399,19 @@ export const audio = new AudioEngine();
 export function sfxForFx(e: { t: string; [k: string]: unknown }, ctx?: { water?: (row: number, col: number) => boolean; finalWave?: boolean }): string | null {
   switch (e.t) {
     case 'shoot':
-      return 'shoot';
+      return `shoot:${e.kind}`;
     case 'hit':
-      return e.kind === 'fire' ? 'fire' : 'hit';
+      return e.kind === 'fire' ? 'fire' : e.kind === 'butter' ? 'hit:butter' : 'hit';
+    case 'squash':
+      return 'squash';
+    case 'aura':
+      return 'shoot:fume';
+    case 'tombBreak':
+      return 'tombBreak';
+    case 'bungee':
+      return 'bungee';
+    case 'divert':
+      return 'divert';
     case 'explode':
       return `explode:${e.kind}`;
     case 'lane':

@@ -80,6 +80,8 @@ export class ClassicRenderer implements BattleRenderer {
   private projFx = new Map<number, Reanim>();
   private mowers = new Map<number, Reanim>();
   private lightnings: { pts: [number, number][]; t: number; seed: number }[] = [];
+  /** 被蹦极僵尸抓走、正在升空的植物 */
+  private carried: { a: UnitActor; x: number; y: number; t: number }[] = [];
   private start: Reanim | null = null;
   private startPlayed = false;
   private shake = 0;
@@ -195,13 +197,32 @@ export class ClassicRenderer implements BattleRenderer {
   private onFx(w: World, e: FxEvent): void {
     const L = this.L;
     switch (e.t) {
-      case 'shoot':
+      case 'shoot': {
         this.units.get(e.unit)?.onShoot();
+        const u = w.unitById(e.unit);
+        if (u && (e.kind === 'fume' || e.kind === 'spore')) {
+          const x = cellX(L, u.col) + (e.kind === 'fume' ? 95 : 70);
+          const y = cellY(L, u.row, u.col) + (e.kind === 'fume' ? 55 : 62);
+          this.pfx.spawn(e.kind === 'fume' ? 'FumeCloud' : 'PuffShroomMuzzle', x, y);
+        }
         break;
+      }
       case 'hit': {
         const p = this.hitPos(e.x, e.row);
-        const name = e.kind === 'frost' ? 'SnowPeaSplat' : e.kind === 'rock' ? 'CabbageSplat' : e.kind === 'meteor' ? 'melonimpact' : e.kind === 'moon' ? 'StarSplat' : e.kind === 'thorn' ? 'StarSplat' : e.kind === 'fire' ? 'Pow' : 'PeaSplat';
-        if (e.kind !== 'steam') this.pfx.spawn(name, p.x, p.y + (e.kind === 'rock' || e.kind === 'meteor' ? 10 : 0));
+        const HIT: Record<string, string> = {
+          frost: 'SnowPeaSplat',
+          rock: 'CabbageSplat',
+          meteor: 'melonimpact',
+          icemeteor: 'WinterMelonImpact',
+          moon: 'StarSplat',
+          thorn: 'StarSplat',
+          fire: 'Pow',
+          spore: 'PuffSplat',
+          kernel: 'KernelSplat',
+          butter: 'ButterSplat',
+        };
+        const lobbed = e.kind === 'rock' || e.kind === 'meteor' || e.kind === 'icemeteor' || e.kind === 'kernel' || e.kind === 'butter';
+        if (e.kind !== 'steam' && e.kind !== 'fume') this.pfx.spawn(HIT[e.kind] ?? 'PeaSplat', p.x, p.y + (lobbed ? 10 : 0));
         if (e.kind === 'fire') this.sparks.burst(p.x, p.y, 8, { color: '#ffb347', speed: 90, life: 0.4, size: 4, kind: 'flame', additive: true, gravity: -60 });
         break;
       }
@@ -223,9 +244,35 @@ export class ClassicRenderer implements BattleRenderer {
           this.addShake(6);
         } else if (e.kind === 'steam') {
           this.pfx.spawn('IceTrap', x, y);
+        } else if (e.kind === 'doom') {
+          this.pfx.spawn('Doom', x, y + 40);
+          this.addShake(22);
+          this.flash = 0.6;
+          this.flashColor = '#ffffff';
+        } else if (e.kind === 'squash') {
+          this.pfx.spawn('Dust_Squash', x, y + 40);
+          this.addShake(5);
         } else this.pfx.spawn('Powie', x, y);
         break;
       }
+      case 'aura': {
+        this.units.get(e.unit)?.onShoot();
+        this.pfx.spawn('GloomCloud', cellX(L, e.col) + 40, cellY(L, e.row, e.col) + L.rowH * 0.6);
+        break;
+      }
+      case 'tombBreak':
+        this.pfx.spawn('GraveBusterDie', cellX(L, e.col) + 40, cellY(L, e.row, e.col) + L.rowH * 0.7);
+        break;
+      case 'steal': {
+        const skin = PLANT_SKINS[e.unit];
+        const def = skin ? PVZ.reanim(skin.reanim) : null;
+        if (skin && def) this.carried.push({ a: new UnitActor(0, e.unit, def, skin), x: cellX(L, e.col), y: cellY(L, e.row, e.col), t: 0 });
+        break;
+      }
+      case 'squash':
+      case 'divert':
+      case 'bungee':
+        break;
       case 'lane': {
         const flames: Reanim[] = [];
         const def = PVZ.reanim('fire');
@@ -377,7 +424,7 @@ export class ClassicRenderer implements BattleRenderer {
       this.ready = true;
     });
     void this.pfx.preload(PARTICLE_PRELOAD);
-    void PVZ.preloadImages([this.L.bg, 'IMAGE_PLANTSHADOW', 'IMAGE_PEA_SHADOWS', 'IMAGE_TOMBSTONES', 'IMAGE_TOMBSTONE_MOUNDS', 'IMAGE_FLAGMETER', 'IMAGE_FLAGMETERPARTS', 'IMAGE_FLAGMETERLEVELPROGRESS', 'IMAGE_REANIM_APPROACHING', 'IMAGE_REANIM_FINALWAVE', 'IMAGE_FOG', 'IMAGE_ICE', 'IMAGE_CRATER', 'IMAGE_ROCKSMALL', 'IMAGE_DIRTBIG', 'IMAGE_PROJECTILEPEA', 'IMAGE_PROJECTILESNOWPEA', 'IMAGE_PROJECTILECACTUS', 'IMAGE_PROJECTILE_STAR', 'IMAGE_SEEDBANK', 'IMAGE_SEEDPACKET_LARGER', 'IMAGE_SEEDS', 'IMAGE_PACKET_PLANTS', 'IMAGE_ICE_CAP', 'IMAGE_ICE_SPARKLES', 'IMAGE_POOL', 'IMAGE_POOL_NIGHT', 'IMAGE_POOL_BASE', 'IMAGE_POOL_BASE_NIGHT', 'IMAGE_POOL_SHADING', 'IMAGE_POOL_SHADING_NIGHT', 'IMAGE_POOL_CAUSTIC_EFFECT', 'IMAGE_SHOVELBANK', 'IMAGE_SHOVEL']);
+    void PVZ.preloadImages([this.L.bg, 'IMAGE_PLANTSHADOW', 'IMAGE_PEA_SHADOWS', 'IMAGE_TOMBSTONES', 'IMAGE_TOMBSTONE_MOUNDS', 'IMAGE_FLAGMETER', 'IMAGE_FLAGMETERPARTS', 'IMAGE_FLAGMETERLEVELPROGRESS', 'IMAGE_REANIM_APPROACHING', 'IMAGE_REANIM_FINALWAVE', 'IMAGE_FOG', 'IMAGE_ICE', 'IMAGE_CRATER', 'IMAGE_ROCKSMALL', 'IMAGE_DIRTBIG', 'IMAGE_PROJECTILEPEA', 'IMAGE_PROJECTILESNOWPEA', 'IMAGE_PROJECTILECACTUS', 'IMAGE_PROJECTILE_STAR', 'IMAGE_SEEDBANK', 'IMAGE_SEEDPACKET_LARGER', 'IMAGE_SEEDS', 'IMAGE_PACKET_PLANTS', 'IMAGE_ICE_CAP', 'IMAGE_ICE_SPARKLES', 'IMAGE_PUFFSHROOM_PUFF1', 'IMAGE_REANIM_CORNPULT_KERNAL', 'IMAGE_REANIM_CORNPULT_BUTTER', 'IMAGE_REANIM_WINTERMELON_PROJECTILE', 'IMAGE_BUNGEECORD', 'IMAGE_BUNGEETARGET', 'IMAGE_POOL', 'IMAGE_POOL_NIGHT', 'IMAGE_POOL_BASE', 'IMAGE_POOL_BASE_NIGHT', 'IMAGE_POOL_SHADING', 'IMAGE_POOL_SHADING_NIGHT', 'IMAGE_POOL_CAUSTIC_EFFECT', 'IMAGE_SHOVELBANK', 'IMAGE_SHOVEL']);
     void BitmapFont.load(FONTS.sun);
     void BitmapFont.load(FONTS.cost);
   }
@@ -465,6 +512,7 @@ export class ClassicRenderer implements BattleRenderer {
     else if (v === 'armor:bucket') this.pfx.spawn('ZombiePail', x, y - 10);
     else if (v === 'armor:door') this.pfx.spawn('ZombieDoor', x - 20, y + 20);
     else if (v === 'armor:paper') this.pfx.spawn('ZombieNewspaper', x - 10, y + 20);
+    else if (v === 'pogo') this.pfx.spawn('ZombiePogo', x, y + 20);
   }
 
   /** 敌人的绘制原点（reanim 左上角） */
@@ -480,6 +528,9 @@ export class ClassicRenderer implements BattleRenderer {
     let y = cellY(this.L, 0, ex) + e.y * this.L.rowH - 38 + 120 * (1 - s) + (skin?.dy ?? 0) + (this.L.rowH === 85 ? -10 : 0);
     if (e.dir > 0) x = front - 18 - 90 * s;
     if (e.def.flying || skin?.flying) y -= 30;
+    // 海豚骑士：骑乘/跳跃时图像右移；跳跃过程中由动画本身完成位移
+    if (skin?.ride && !e.jumped) x += skin.ride.dx;
+    if (skin?.ride && e.state === 'jump') x += (e.jumpFrom - ex) * CELL_W;
     if (e.def.boss === 'king' && e.rowSpan) {
       x = this.colX(this.L.cols) - 520;
       y = groundY(this.L, e.rowSpan[1], 8) - 560;
@@ -555,12 +606,18 @@ export class ClassicRenderer implements BattleRenderer {
       for (const u of us) this.drawUnit(w, u, base);
       for (const c of corpsesByRow[r]) this.drawCorpse(c, base);
       const es = enemiesByRow[r].sort((a, b) => b.x - a.x);
-      for (const e of es) this.drawShadow(this.colX(e.x) + 15, groundY(L, e.y, e.x) - 4, (ZOMBIE_SKINS[e.def.id]?.scale ?? 1) * 1.1);
+      for (const e of es) {
+        // 水中与潜地的敌人没有地面阴影
+        const cell = w.grid[e.row]?.[Math.max(0, Math.min(w.cols - 1, Math.floor(e.x)))];
+        if (cell?.terrain === 'w' || e.burrowed) continue;
+        this.drawShadow(this.colX(e.x) + 15, groundY(L, e.y, e.x) - 4, (ZOMBIE_SKINS[e.def.id]?.scale ?? 1) * 1.1);
+      }
       for (const e of es) this.drawZombie(w, e, alpha, base);
       this.drawProjectiles(w, r, alpha, base);
       this.drawFireLane(w, r, base, dt);
     }
     for (const e of airborne) this.drawZombie(w, e, alpha, base);
+    this.drawCarried(base, dt);
     this.drawProjectiles(w, -1, alpha, base);
 
     ctx.setTransform(...base);
@@ -811,7 +868,7 @@ export class ClassicRenderer implements BattleRenderer {
     if (!a) return;
     const p = this.plantOrigin(w, u);
     const s = a.skin.scale ?? 1;
-    let m = translate(base, p.x, p.y);
+    let m = translate(base, p.x + a.ox, p.y + a.oy);
     if (s !== 1) m = scaleMat(m, s);
     a.body.draw(this.ctx, m, PVZ_IMAGES);
     const ctx = this.ctx;
@@ -850,6 +907,8 @@ export class ClassicRenderer implements BattleRenderer {
     if (!a) return;
     const p = this.zombiePos(e, alpha);
     const s = a.skin.scale ?? 1;
+    if (e.def.bungee) this.drawBungeeCord(e, p, base);
+    if (e.def.bungee) p.y += this.bungeeLift(e, alpha);
     let m = translate(base, p.x, p.y);
     if (e.dir > 0) m = mul(m, -1, 0, 0, 1, 160 * s, 0);
     if (s !== 1) m = scaleMat(m, s);
@@ -858,7 +917,10 @@ export class ClassicRenderer implements BattleRenderer {
     if (!visible) a.body.alpha = 0.08;
     else if (e.submerged || e.burrowed) a.body.alpha = 0.55;
     const water = !e.def.flying && w.grid[e.row]?.[Math.max(0, Math.min(w.cols - 1, Math.floor(e.x)))]?.terrain === 'w';
-    if (water && e.def.id !== 'diver') {
+    // 普通僵尸在泳池中套上鸭子游泳圈
+    if (a.skin.reanim === 'Zombie' && a.body.def.index.has('Zombie_duckytube')) a.body.setTrackVisible('Zombie_duckytube', water);
+    const riding = !!a.skin.ride && !e.jumped;
+    if (water && e.def.id !== 'diver' && !a.skin.noWaterClip && !riding) {
       // 水中：裁掉下半身
       const ctx = this.ctx;
       ctx.save();
@@ -883,6 +945,47 @@ export class ClassicRenderer implements BattleRenderer {
       ctx.fillStyle = '#c0c6cf';
       ctx.fillRect(bx + 44 * (Math.max(0, e.hp) / total), by, 44 * (e.armor / total), 5);
     }
+  }
+
+  /** 蹦极僵尸的高度偏移：降落阶段从空中落下，离开阶段被拉回天空 */
+  private bungeeLift(e: Enemy, alpha: number): number {
+    const t = e.stateT + (e.freeze > 0 || e.stun > 0 ? 0 : alpha * DT);
+    if (e.state === 'drop') return -560 * Math.pow(1 - Math.min(1, t / 1.6), 2);
+    if (e.state === 'leave') return -560 * Math.min(1, t / 1) ** 2;
+    return 0;
+  }
+
+  private drawBungeeCord(e: Enemy, p: { x: number; y: number }, base: Mat): void {
+    const ctx = this.ctx;
+    const L = this.L;
+    ctx.setTransform(...base);
+    // 降落前的目标标记
+    if (e.state === 'drop') {
+      const tgt = this.img('IMAGE_BUNGEETARGET');
+      if (tgt) {
+        const gx = this.colX(e.x);
+        const gy = groundY(L, e.row, e.x);
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(tgt.img, gx - tgt.w / 2, gy - tgt.h / 2 - 20);
+        ctx.globalAlpha = 1;
+      }
+    }
+    const cord = this.img('IMAGE_BUNGEECORD');
+    if (!cord) return;
+    const cx = p.x + 66;
+    const bottom = p.y + this.bungeeLift(e, 0) + 20;
+    for (let y = bottom - cord.h; y > -cord.h - 200; y -= cord.h) ctx.drawImage(cord.img, cx - cord.w / 2, y);
+  }
+
+  private drawCarried(base: Mat, dt: number): void {
+    for (const c of this.carried) {
+      c.t += dt;
+      c.a.update(dt);
+      const lift = -560 * Math.min(1, (c.t / 1.0) ** 2);
+      c.a.body.alpha = Math.max(0, 1 - c.t);
+      c.a.body.draw(this.ctx, translate(base, c.x, c.y + lift), PVZ_IMAGES);
+    }
+    this.carried = this.carried.filter((c) => c.t < 1.2);
   }
 
   private drawCorpse(c: ZombieActor, base: Mat): void {

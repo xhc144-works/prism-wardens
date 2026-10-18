@@ -7,6 +7,7 @@ import type { Enemy, Unit } from '../../core/sim/entities';
 import { CONTENT } from '../../core/content/registry';
 import { PVZ } from '../../pvz/assets';
 import { Reanim, type ReanimDef, segmentOf } from '../../pvz/reanim';
+import { DT } from '../../core/constants';
 import { PLANT_SKINS, ZOMBIE_SKINS, type PlantSkin, type ZombieSkin } from './skins';
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
@@ -31,6 +32,11 @@ export class UnitActor {
   private rate: number;
   /** 发光（产出前、受击） */
   glow = 0;
+  /** 绘制时的水平偏移（窝瓜跳起扑向目标） */
+  ox = 0;
+  oy = 0;
+  private grown = false;
+  private wearStage = 0;
 
   constructor(
     public unitId: number,
@@ -55,6 +61,7 @@ export class UnitActor {
       this.heads.push({ r, spec: h });
     }
     if (defId === 'volatile_geode') this.body.play('anim_idle', 'hold');
+    if (skin.intro && this.body.play(skin.intro, 'once')) this.body.rate = def.fps;
   }
 
   onShoot(): void {
@@ -109,9 +116,56 @@ export class UnitActor {
         this.body.rate = (this.body.count - 1) / fuse;
         this.exploded = true;
       }
+    } else if (b === 'squash') {
+      // 窝瓜：张望 → 起跳 → 压下，并水平移向目标
+      if (u.chomp > 0) {
+        const t = 0.75 - u.chomp;
+        const dx = (u.fuse - (u.col + 0.5)) * 80;
+        if (t < 0.25) {
+          if (this.body.anim !== (dx >= 0 ? 'anim_lookright' : 'anim_lookleft')) this.body.play(dx >= 0 ? 'anim_lookright' : 'anim_lookleft', 'hold', 0.05);
+          this.body.rate = 30;
+        } else if (t < 0.5) {
+          if (this.body.anim !== 'anim_jumpup') this.body.play('anim_jumpup', 'hold', 0.03);
+          this.body.rate = 40;
+          const k = (t - 0.25) / 0.25;
+          this.ox = dx * k;
+          this.oy = -70 * Math.sin(k * Math.PI * 0.5);
+        } else {
+          if (this.body.anim !== 'anim_jumpdown') this.body.play('anim_jumpdown', 'hold', 0.02);
+          this.body.rate = 50;
+          const k = (t - 0.5) / 0.25;
+          this.ox = dx;
+          this.oy = -70 * (1 - k);
+        }
+      }
+    } else if (s.grow && u.def.grow) {
+      // 阳光菇：放置一段时间后长大
+      const grown = (w.tick - u.placedTick) * DT >= u.def.grow.after;
+      if (grown && !this.grown) {
+        this.grown = true;
+        this.body.play(s.grow.anim, 'once', 0.1);
+        this.body.rate = 12;
+      } else if (this.grown && this.body.anim === s.grow.anim && this.body.done) {
+        this.body.play(s.grow.idle, 'loop', 0.1);
+        this.body.rate = this.rate;
+      }
+    } else if (s.intro && this.body.anim === s.intro && this.body.done) {
+      this.body.play(s.idle, 'loop', 0.1);
+      this.body.rate = this.rate;
     } else if (s.shoot && this.body.anim === s.shoot && this.body.done) {
       this.body.play(s.idle, 'loop', 0.1);
       this.body.rate = this.rate;
+    }
+    // 按生命隐藏部件
+    if (s.wear) {
+      const k = u.hp / u.maxHp;
+      const stage = s.wear.filter((x) => k < x.below).length;
+      if (stage !== this.wearStage) {
+        this.wearStage = stage;
+        s.wear.forEach((x, i) => {
+          for (const t of x.hide) this.body.setTrackVisible(t, i >= stage);
+        });
+      }
     }
     if (b === 'gale' && this.body.anim !== 'anim_blow') {
       this.body.play('anim_blow', 'loop');
@@ -206,6 +260,7 @@ export class ZombieActor {
   charred: Reanim | null = null;
   fade = 1;
   baseSpeed = 0;
+  private stickGone = false;
 
   constructor(
     public enemyId: number,
@@ -295,15 +350,24 @@ export class ZombieActor {
       for (const t of s.head) r.setTrackVisible(t, false);
       ev.push('head');
     }
+    // 跳杆被吸走或撞上高坚果：丢掉跳杆
+    if (s.hideAfterJump && e.jumped && !this.stickGone) {
+      this.stickGone = true;
+      for (const t of s.hideAfterJump) r.setTrackVisible(t, false);
+      ev.push('pogo');
+    }
     // 动作
     let want = this.walkAnim;
     let loop: 'loop' | 'once' | 'hold' = 'loop';
     const paperGone = s.armor === 'paper' && this.armorGone;
-    if (this.state === 'gasp' && !r.done) want = 'anim_gasp';
+    if (e.state === 'drop' || e.state === 'grab' || e.state === 'leave') {
+      want = (e.state === 'drop' ? s.anims?.drop : e.state === 'grab' ? s.anims?.grab : s.anims?.raise) ?? this.walkAnim;
+      loop = 'hold';
+    } else if (this.state === 'gasp' && !r.done) want = 'anim_gasp';
     else if (e.state === 'eat' || e.state === 'smash') want = e.state === 'smash' ? 'anim_smash' : paperGone ? 'anim_eat_nopaper' : s.eat;
     else if (e.state === 'jump') {
-      want = 'anim_jump';
-      loop = 'hold';
+      want = s.anims?.jump ?? 'anim_jump';
+      loop = s.anims?.jumpLoop ? 'loop' : 'hold';
     } else if (e.state === 'throw') {
       want = 'anim_throw';
       loop = 'hold';
@@ -312,7 +376,8 @@ export class ZombieActor {
       want = 'anim_landing';
       loop = 'hold';
     } else if (e.state === 'cast') want = r.has('anim_armraise') ? 'anim_armraise' : this.walkAnim;
-    else if (e.def.jumper && !e.jumped) want = 'anim_run';
+    else if (e.def.jumper && !e.jumped) want = s.anims?.run ?? 'anim_run';
+    else if (s.ride && e.jumped) want = s.ride.afterWalk;
     else if (paperGone) want = 'anim_walk_nopaper';
     else if (e.def.catapult && e.ammo > 0 && e.x <= w.cols - 1.6 && e.state === 'walk') want = 'anim_shoot';
     if (e.stun > 0 && r.has('anim_dizzy')) want = 'anim_dizzy';
@@ -323,7 +388,7 @@ export class ZombieActor {
     }
     // 播放速度：行走动作按地面轨道匹配实际移速，避免滑步
     let rate = r.def.fps;
-    const isWalk = want === this.walkAnim || want === 'anim_run' || want === 'anim_walk_nopaper' || want === 'anim_swim';
+    const isWalk = want === this.walkAnim || want === 'anim_run' || want === 'anim_walk_nopaper' || want === 'anim_swim' || want === s.ride?.afterWalk;
     if (isWalk) {
       const sp = groundSpeed(r.def, want);
       const simPx = e.def.speed * e.speedMul * (e.berserk ? 2.2 : 1) * 80;

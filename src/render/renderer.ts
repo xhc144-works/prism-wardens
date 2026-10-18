@@ -1038,6 +1038,16 @@ export function projColor(kind: string): string {
       return '#ffbe0b';
     case 'moon':
       return '#d6dbff';
+    case 'spore':
+      return '#d0a8ff';
+    case 'fume':
+      return '#b892ff';
+    case 'kernel':
+      return '#ffe066';
+    case 'butter':
+      return '#ffd43b';
+    case 'icemeteor':
+      return '#9bd8ff';
     default:
       return '#8fe3ff';
   }
@@ -1104,6 +1114,44 @@ export function drawProjectile(ctx: Ctx, kind: string, x: number, y: number, t: 
       ctx.fillStyle = '#7a3b0a';
       ctx.beginPath();
       ctx.arc(x + 2, y + 2, 6, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'spore':
+      glow(ctx, x, y, 14, c, 0.5);
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'fume':
+      ctx.fillStyle = 'rgba(184,146,255,0.35)';
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.arc(x - dir * i * 12, y + Math.sin(t * 12 + i) * 4, 14 - i * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    case 'kernel':
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 5, 6.5, t * 6, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'butter':
+      ctx.fillStyle = c;
+      ctx.fillRect(x - 9, y - 5, 18, 10);
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.fillRect(x - 7, y - 4, 14, 3);
+      break;
+    case 'icemeteor':
+      glow(ctx, x, y, 30, '#7fd3ff', 0.7);
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.arc(x, y, 11, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x - 3, y - 3, 4, 0, Math.PI * 2);
       ctx.fill();
       break;
     case 'moon':
