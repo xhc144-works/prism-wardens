@@ -5,7 +5,7 @@ import { store } from './app/store';
 import { audio } from './audio/audio';
 import { PVZ } from './pvz/assets';
 import { applyClassicTheme } from './ui/classic/theme';
-import { applyClassicNames } from './ui/classic/names';
+import { applyClassicNames, installClassicDomTerms } from './ui/classic/names';
 import { ClassicLoading } from './ui/classic/ClassicLoading';
 import { installClassicIcons } from './ui/classic/icons';
 
@@ -43,6 +43,7 @@ async function boot(): Promise<void> {
     installClassicIcons();
   }
   render(<App />, root);
+  if (PVZ.available && store.settings.skin !== 'original') installClassicDomTerms(document.body);
 
   // 首次用户交互后启用音频（浏览器策略要求）
   const unlock = () => {

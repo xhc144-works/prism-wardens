@@ -98,3 +98,42 @@ export function classicText(t: string): string {
   for (const [a, b] of TERMS) if (r.includes(a)) r = r.split(a).join(b);
   return r;
 }
+
+/**
+ * 经典皮肤下把界面上硬编码的本作术语替换为原版术语（光能 → 阳光 等）。
+ * 监听 DOM 文本与提示文字的变化；替换是幂等的，不会与 Preact 的更新互相触发。
+ */
+export function installClassicDomTerms(root: HTMLElement): void {
+  if (!applied) return;
+  const fixText = (n: Text) => {
+    const t = n.data;
+    if (!t || !/[光蚀守符浮]/.test(t)) return;
+    const r = classicText(t);
+    if (r !== t) n.data = r;
+  };
+  const fixAttr = (el: Element) => {
+    for (const a of ['title', 'placeholder']) {
+      const v = el.getAttribute(a);
+      if (v && /[光蚀守符浮]/.test(v)) {
+        const r = classicText(v);
+        if (r !== v) el.setAttribute(a, r);
+      }
+    }
+  };
+  const walk = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) return fixText(node as Text);
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const el = node as Element;
+    if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'TEXTAREA') return;
+    fixAttr(el);
+    for (const c of Array.from(el.childNodes)) walk(c);
+  };
+  walk(root);
+  new MutationObserver((list) => {
+    for (const m of list) {
+      if (m.type === 'characterData') fixText(m.target as Text);
+      else if (m.type === 'attributes') fixAttr(m.target as Element);
+      else for (const n of Array.from(m.addedNodes)) walk(n);
+    }
+  }).observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['title', 'placeholder'] });
+}
