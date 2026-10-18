@@ -4,6 +4,9 @@ import { DT } from '../core/constants';
 import { AIAgent, type AIRole } from '../ai/agent';
 import { getStrategy, type StrategyParams } from '../ai/strategies';
 import { Renderer } from '../render/renderer';
+import { ClassicRenderer } from '../render/classic/classicRenderer';
+import type { BattleRenderer } from '../render/types';
+import { PVZ } from '../pvz/assets';
 import { audio, sfxForFx } from '../audio/audio';
 import { store } from './store';
 
@@ -19,6 +22,11 @@ export const CONTROL_NAMES: Record<ControlMode, string> = {
 
 const ROLE: Record<ControlMode, AIRole | null> = { human: null, ai: 'full', coop: 'economy', assist: 'assist', hint: 'hint' };
 
+/** 是否使用原版资源皮肤（需已导入资源且设置开启） */
+export function useClassicSkin(): boolean {
+  return PVZ.available && store.settings.skin !== 'original';
+}
+
 export const SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16];
 
 /**
@@ -27,7 +35,7 @@ export const SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16];
  */
 export class GameController {
   world: World;
-  renderer: Renderer | null = null;
+  renderer: BattleRenderer | null = null;
   agent: AIAgent | null = null;
   control: ControlMode = 'human';
   strategy: StrategyParams = getStrategy('balanced');
@@ -54,7 +62,7 @@ export class GameController {
   }
 
   attach(canvas: HTMLCanvasElement): void {
-    this.renderer = new Renderer(canvas);
+    this.renderer = useClassicSkin() ? new ClassicRenderer(canvas) : new Renderer(canvas);
     this.applySettings();
     this.lastTs = performance.now();
     this.raf = requestAnimationFrame(this.loop);

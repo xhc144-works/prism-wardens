@@ -8,3 +8,5 @@ playwright-report/
 .vite/
 coverage/
 sim-output/
+local/
+public/pvz/

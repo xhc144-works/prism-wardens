@@ -19,7 +19,8 @@
     "electron": "electron .",
     "dist:win": "npm run build && electron-builder --win --x64 --publish never",
     "dist:dir": "npm run build && electron-builder --dir",
-    "release": "npm run build && electron-builder --win --x64 --publish always"
+    "release": "npm run build && electron-builder --win --x64 --publish always",
+    "assets:import": "tsx tools/import/cli.ts"
   },
   "dependencies": {
     "electron-updater": "6.3.9",

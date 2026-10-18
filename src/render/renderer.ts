@@ -11,22 +11,8 @@ import { drawEnemy } from './art/enemies';
 import { Particles } from './particles';
 import { BOARD_LEFT, BOARD_TOP, CELL_H, CELL_W, THEMES, boardSize, drawNode, drawSentinel, drawTerrain, drawTerrainFx, drawTomb } from './terrain';
 
-export interface HoverState {
-  row: number;
-  col: number;
-  def?: UnitDef;
-  valid: boolean;
-  mode?: 'place' | 'remove' | 'upgrade' | 'skill' | 'item';
-  area?: 'cell' | 'row' | '3x3';
-}
-
-export interface RenderSettings {
-  particles: 'high' | 'low';
-  damageNumbers: boolean;
-  showHp: boolean;
-  screenShake: boolean;
-  showGrid: boolean;
-}
+import type { BattleRenderer, HoverState, RenderSettings } from './types';
+export type { HoverState, RenderSettings } from './types';
 
 interface Banner {
   text: string;
@@ -48,7 +34,8 @@ interface FlyOrb {
 /**
  * 战场渲染器。只读取 World 状态并消费表现事件，绝不修改游戏逻辑。
  */
-export class Renderer {
+export class Renderer implements BattleRenderer {
+  readonly kind = 'procedural' as const;
   canvas: HTMLCanvasElement;
   ctx: Ctx;
   dpr = 1;
@@ -111,6 +98,10 @@ export class Renderer {
   /* ---------------------------- 坐标换算 ---------------------------- */
 
   /** 屏幕(相对画布 CSS 像素) -> 棋盘逻辑坐标 */
+  sceneRect(): { x: number; y: number; w: number; h: number; scale: number } {
+    return { x: this.ox, y: this.oy, w: this.cssW - this.ox * 2, h: this.cssH - this.oy * 2, scale: this.scale };
+  }
+
   toLogical(px: number, py: number): { x: number; y: number } {
     return { x: (px - this.ox) / this.scale, y: (py - this.oy) / this.scale };
   }

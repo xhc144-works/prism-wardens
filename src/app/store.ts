@@ -26,6 +26,8 @@ export interface Settings {
   activePreset: string;
   aiOverlay: boolean;
   difficulty: number;
+  /** 美术风格：classic = 使用本地导入的原版资源，original = 内置原创美术 */
+  skin: 'classic' | 'original';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -46,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   activePreset: 'default',
   aiOverlay: true,
   difficulty: 1,
+  skin: 'classic',
 };
 
 export interface ReplayMeta {

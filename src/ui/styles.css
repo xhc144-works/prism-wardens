@@ -895,3 +895,70 @@ table.table tr:hover td {
     overflow: auto;
   }
 }
+
+/* ---------- 经典皮肤（原版资源导入后启用） ---------- */
+.classic-battle .battle-main {
+  background: #000;
+}
+.pvz-topright {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 5;
+}
+.pvz-level-name {
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 3px #000, 0 2px 4px #000;
+  font-size: 15px;
+}
+.pvz-btn {
+  height: 46px;
+  min-width: 112px;
+  padding: 0 36px;
+  border: 0;
+  cursor: pointer;
+  background: var(--pvz-btn-l) left center / auto 100% no-repeat, var(--pvz-btn-r) right center / auto 100% no-repeat, var(--pvz-btn-m) center / auto 100% repeat-x;
+  background-clip: border-box, border-box, content-box;
+  color: #00e000;
+  font: 900 18px 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  text-shadow: 0 1px 0 #003000, 0 -1px 0 #9dff9d;
+  letter-spacing: 2px;
+}
+.pvz-btn:hover {
+  filter: brightness(1.12);
+}
+.pvz-btn:active {
+  background: var(--pvz-btn-dl) left center / auto 100% no-repeat, var(--pvz-btn-dr) right center / auto 100% no-repeat, var(--pvz-btn-dm) center / auto 100% repeat-x;
+  background-clip: border-box, border-box, content-box;
+}
+.pvz-btn.small {
+  height: 36px;
+  min-width: 80px;
+  font-size: 14px;
+  padding: 0 28px;
+}
+.pvz-skills {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 4;
+}
+.classic-battle .battle-bottom {
+  background: linear-gradient(180deg, #6b4423, #3e2611);
+  border-top: 2px solid #24140a;
+  color: #f6e7c1;
+}
+.classic-battle .battle-bottom .muted {
+  color: #d9c49a;
+}
+.classic-battle .skill-btn {
+  background: radial-gradient(circle at 40% 35%, #8a5a2b, #4a2c12);
+  border: 2px solid #2b170a;
+  border-radius: 50%;
+}

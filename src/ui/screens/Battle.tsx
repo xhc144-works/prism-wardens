@@ -14,7 +14,10 @@ import { analyzeGame, applyAdjustments } from '../../ai/analyzer';
 import { buildDeck } from '../../ai/deckBuilder';
 import { STRATEGIES, getStrategy } from '../../ai/strategies';
 import { CoachState } from '../../ai/coach';
-import { GameController, CONTROL_NAMES, SPEEDS, type ControlMode } from '../../app/game';
+import { GameController, CONTROL_NAMES, SPEEDS, useClassicSkin, type ControlMode } from '../../app/game';
+import type { ClassicRenderer } from '../../render/classic/classicRenderer';
+import { PVZ } from '../../pvz/assets';
+import { PLANT_SKINS } from '../../render/classic/skins';
 import { navigate, back, home, type BattleSetup } from '../../app/nav';
 import { store } from '../../app/store';
 import { audio } from '../../audio/audio';
@@ -176,6 +179,13 @@ export function BattleScreen(props: { setup: BattleSetup }) {
     const rect = canvasRef.current!.getBoundingClientRect();
     const px = e.clientX - rect.left;
     const py = e.clientY - rect.top;
+    if (r.kind === 'classic') {
+      const cr = r as ClassicRenderer;
+      cr.hudState.mouse = { x: px, y: py };
+      const hit = cr.hudAt(px, py, w);
+      if (hit?.kind === 'card') onTip(w.deck[hit.index].def, e);
+      else onTip(null, e);
+    }
     if (draggingCollect.current) {
       // 鼠标划过光球即可收集
       for (const id of r.orbsNear(px, py, w, 34)) ctrl.issue({ type: 'collect', orb: id });
@@ -203,6 +213,18 @@ export function BattleScreen(props: { setup: BattleSetup }) {
     const rect = canvasRef.current!.getBoundingClientRect();
     const px = e.clientX - rect.left;
     const py = e.clientY - rect.top;
+    if (r.kind === 'classic') {
+      const hit = (r as ClassicRenderer).hudAt(px, py, w);
+      if (hit) {
+        if (hit.kind === 'card') {
+          const c = w.deck[hit.index];
+          activateTool(tool?.kind === 'card' && tool.id === c.id ? null : { kind: 'card', id: c.id });
+        } else if (hit.kind === 'shovel') activateTool(tool?.kind === 'remove' ? null : { kind: 'remove' });
+        else activateTool(tool?.kind === 'upgrade' ? null : { kind: 'upgrade' });
+        audio.sfx('click');
+        return;
+      }
+    }
     const orb = r.orbAt(px, py, w);
     if (orb != null) {
       ctrl.issue({ type: 'collect', orb });
@@ -239,6 +261,8 @@ export function BattleScreen(props: { setup: BattleSetup }) {
     setTool(t);
   };
 
+  const classic = useClassicSkin();
+  if (ctrl.renderer?.kind === 'classic') (ctrl.renderer as ClassicRenderer).hudState.selected = tool;
   const prof = store.profile;
   const deny = performance.now() - ctrl.lastDeniedAt < 1500 ? ctrl.lastDenied : '';
   const totalW = Number.isFinite(w.totalWaves) ? w.totalWaves : 0;
@@ -246,8 +270,8 @@ export function BattleScreen(props: { setup: BattleSetup }) {
   const upgradeTip = tool?.kind === 'upgrade' ? '点击单位强化（★2: 费用×0.75，★3: 费用×1.25）' : '';
 
   return (
-    <div class="screen battle">
-      <div class="battle-top">
+    <div class={`screen battle ${classic ? 'classic-battle' : ''}`}>
+      {!classic && <div class="battle-top">
         <div class={`lumen-box ${pulse ? 'pulse' : ''}`} ref={lumenRef} title="光能">
           <div class="orb" />
           <div class="num">{w.cheats?.infiniteLumen ? '∞' : Math.floor(w.lumen)}</div>
@@ -314,7 +338,7 @@ export function BattleScreen(props: { setup: BattleSetup }) {
             <Btn small onClick={() => setMenu(true)}>☰ 菜单</Btn>
           </div>
         </div>
-      </div>
+      </div>}
 
       <div class="battle-main">
         <div class="battle-canvas-wrap">
@@ -338,8 +362,40 @@ export function BattleScreen(props: { setup: BattleSetup }) {
               e.preventDefault();
               setTool(null);
             }}
-            style={{ cursor: tool ? 'crosshair' : 'default' }}
+            style={{ cursor: classic ? (tool ? 'none' : 'default') : tool ? 'crosshair' : 'default' }}
           />
+          {classic && (
+            <div class="pvz-topright">
+              <div class="pvz-level-name">{w.level.name}</div>
+              <button class="pvz-btn" onClick={() => setMenu(true)}>
+                {PVZ.str('MENU', '菜单')}
+              </button>
+            </div>
+          )}
+          {classic && (w.skills.length > 0 || Object.values(w.items).some((n) => n > 0)) && (
+            <div class="pvz-skills">
+              {w.skills.map((s) => {
+                const def = SKILLS.find((x) => x.id === s.id)!;
+                return (
+                  <div class={`skill-btn ${tool?.kind === 'skill' && tool.id === s.id ? 'selected' : ''}`} title={`${def.name}：${def.desc}`} onClick={() => activateTool({ kind: 'skill', id: s.id })} style={{ color: def.color }}>
+                    {def.icon}
+                    {s.cooldown > 0 && <div class="cd" style={{ height: `${(s.cooldown / def.cooldown) * 100}%` }} />}
+                  </div>
+                );
+              })}
+              {Object.entries(w.items)
+                .filter(([, n]) => n > 0)
+                .map(([id, n]) => {
+                  const def = ITEMS.find((x) => x.id === id)!;
+                  return (
+                    <div class={`skill-btn ${tool?.kind === 'item' && tool.id === id ? 'selected' : ''}`} title={`${def.name}：${def.desc}`} onClick={() => activateTool({ kind: 'item', id })} style={{ color: def.color }}>
+                      {def.icon}
+                      <span class="count">{n}</span>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
           {store.settings.showFps && <div class="fps">{ctrl.fps} FPS · tick {w.tick}</div>}
           {deny && <div class="deny-msg">{deny}</div>}
           {upgradeTip && <div class="deny-msg" style={{ background: 'rgba(40,60,120,.85)', borderColor: 'var(--accent)' }}>{upgradeTip}</div>}
