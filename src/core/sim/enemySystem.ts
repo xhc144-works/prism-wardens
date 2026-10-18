@@ -48,6 +48,8 @@ export function findBlocker(w: World, e: Enemy): Unit | undefined {
 function pickBlockUnit(w: World, row: number, col: number): Unit | undefined {
   const cell = w.grid[row][col];
   const main = w.unitById(cell.main);
+  // 起跳中的窝瓜在空中，不会被啃咬或碾压
+  if (main && main.def.behavior === 'squash' && main.chomp > 0) return undefined;
   if (main && !main.def.noBite) return main;
   const plate = w.unitById(cell.plate);
   if (plate && !plate.def.noBite) return plate;

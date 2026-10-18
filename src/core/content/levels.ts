@@ -218,12 +218,28 @@ export const LEVELS: LevelDef[] = [
     events: ev(), weather: cycle(['clear', 60], ['storm', 40], ['sunny', 40]), rewards: { coins: 300 },
   },
   {
-    id: '5-6', name: '蚀之王', chapter: 5, index: 6, map: 'sky_ruins', time: 'day', startLumen: 200, bossLevel: true,
+    id: '5-6', name: '蚀之王', chapter: 5, index: 6, map: 'sky_ruins', time: 'day', startLumen: 300, bossLevel: true,
     desc: '最终首领战！击败盘踞在遗迹尽头的蚀之王。',
     gen: gen(6, 3.4, 0.96, ['husk', 'shard_husk', 'iron_husk', 'leaper', 'berserker'], { flagEvery: 6, bossAtEnd: 'boss_king' }),
     enemyPool: ['husk', 'shard_husk', 'iron_husk', 'leaper', 'berserker', 'colossus', 'boss_king'], rewards: { coins: 1000 },
   },
 ];
+
+/**
+ * 难度校准：原版冒险模式每波点数约为 wave/3 + 1（旗帜波 ×2.5），后几章原先的波次预算增长约为原版的 3 倍，
+ * 远超经济能支撑的火力（AI 在无限光能下全胜、在敌人生命 -20% 时仍全败，说明瓶颈是预算增长而非单个敌人）。
+ * 这里按章节缩放波次预算的起点与增长，使曲线接近原版，同时保留本作的天气、事件与更复杂的敌人组合。
+ */
+const DIFFICULTY_SCALE: Record<number, { base: number; growth: number }> = {
+  3: { base: 0.7, growth: 0.62 },
+  4: { base: 0.68, growth: 0.6 },
+  5: { base: 0.66, growth: 0.58 },
+};
+for (const l of LEVELS) {
+  const k = DIFFICULTY_SCALE[l.chapter ?? 0];
+  if (!k || !l.gen) continue;
+  l.gen = { ...l.gen, base: Math.round(l.gen.base * k.base * 100) / 100, growth: Math.round(l.gen.growth * k.growth * 100) / 100 };
+}
 
 /** 无尽 / 生存使用的场地 */
 export const ARENAS = [

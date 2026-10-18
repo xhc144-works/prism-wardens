@@ -52,7 +52,8 @@ export function levelFeatures(level: LevelDef): LevelFeatures {
     shields: pool.some((e) => e.armor?.kind === 'shield'),
     metal: pool.some((e) => e.armor?.metal),
     burrowers: pool.some((e) => e.burrow),
-    vehicles: pool.some((e) => e.vehicle),
+    // 蚀之王会滚出蚀能球（载具），需要地刺/爆破应对
+    vehicles: pool.some((e) => e.vehicle || e.boss === 'king'),
     stealth: pool.some((e) => e.stealth),
     jumpers: pool.some((e) => e.jumper),
     tanks: pool.some((e) => e.hp + (e.armor?.hp ?? 0) >= 1200),

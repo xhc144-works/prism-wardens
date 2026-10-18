@@ -78,7 +78,7 @@ function updateWyrm(w: World, e: Enemy): void {
     }
     b.t2 -= DT;
     if (b.t2 <= 0) {
-      b.t2 = p2 ? 9 : 14;
+      b.t2 = p2 ? 11 : 16;
       for (const r of [e.row - 1, e.row, e.row + 1]) {
         if (r < 0 || r >= w.rows || w.isWaterRow(r)) continue;
         w.spawnEnemy('shardling', r, Math.max(0.8, e.x - 0.7), w.waveIndex);
@@ -136,12 +136,12 @@ function updateTempest(w: World, e: Enemy): void {
   }
   b.t1 -= DT;
   if (b.t1 <= 0) {
-    b.t1 = p2 ? 4 : 6;
+    b.t1 = p2 ? 6 : 8;
     const us = w.units.filter((u) => !u.dead && u.layer === 'main' && !u.relic);
     const n = p2 ? 3 : 2;
     for (let i = 0; i < n && us.length; i++) {
       const u = us.splice(w.rng.int(us.length), 1)[0];
-      w.damageUnit(u, 150, e.def.id);
+      w.damageUnit(u, 100, e.def.id);
       w.emit({ t: 'lightning', x: u.col + 0.5, row: u.row, x2: e.x, row2: e.row });
     }
   }
@@ -167,16 +167,16 @@ function updateKing(w: World, e: Enemy): void {
   e.x = w.cols - 0.55;
   b.t1 -= DT;
   if (b.t1 <= 0) {
-    b.t1 = 11 * k;
-    const pool = b.phase >= 2 ? ['husk', 'shard_husk', 'iron_husk', 'leaper', 'berserker', 'shieldbearer'] : ['husk', 'shard_husk', 'leaper', 'berserker'];
-    const n = 2 + b.phase;
+    b.t1 = 15 * k;
+    const pool = b.phase >= 2 ? ['husk', 'shard_husk', 'iron_husk', 'leaper', 'berserker', 'shieldbearer'] : ['husk', 'shard_husk', 'berserker'];
+    const n = 1 + b.phase;
     const rows = landRows(w);
     for (let i = 0; i < n; i++) w.spawnEnemy(w.rng.pick(pool), w.rng.pick(rows), w.cols - 1.1 + w.rng.next() * 0.4, w.waveIndex);
     w.emit({ t: 'text', text: '蚀之王召唤了大军', color: '#ff006e' });
   }
   b.t2 -= DT;
   if (b.t2 <= 0) {
-    b.t2 = 14 * k;
+    b.t2 = 18 * k;
     const span = e.rowSpan!;
     const r = span[0] + w.rng.int(span[1] - span[0] + 1);
     w.spawnEnemy('blight_orb', r, w.cols - 1.1, w.waveIndex);
@@ -188,7 +188,7 @@ function updateKing(w: World, e: Enemy): void {
       const span = e.rowSpan!;
       for (const u of w.units) {
         if (u.dead || u.layer === 'instant' || u.relic) continue;
-        if (u.row >= span[0] && u.row <= span[1] && u.col >= w.cols - 3) w.damageUnit(u, 99999, e.def.id);
+        if (u.row >= span[0] && u.row <= span[1] && u.col >= w.cols - 2) w.damageUnit(u, 99999, e.def.id);
       }
       w.emit({ t: 'explode', x: w.cols - 1.5, row: e.row, radius: 1.8, kind: 'bomber' });
       b.mode = 'idle';

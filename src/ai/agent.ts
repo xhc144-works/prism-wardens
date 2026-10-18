@@ -140,7 +140,19 @@ export class AIAgent {
       const bestAny = cands[0];
       // 有行处于无防守状态时绝不攒钱：先用买得起的单位补上
       const exposed = this.exposedLanes(w, obs);
-      if (!exposed.length && bestAny && bestAny !== best && bestAny.score > (best?.score ?? 0) + 22 && bestAny.score >= threshold && !bestAny.emergency) {
+      // 只有空中威胁时，地面单位帮不上忙：为对空手段攒光能，而不是继续买便宜的地面单位
+      const airOnly = exposed.length > 0 && exposed.every((l) => !l.enemies.some((e) => !e.flying && !e.burrowed && !e.behind));
+      if (airOnly && !(best && this.isAntiAir(best))) {
+        const aa = cands.find((c) => this.isAntiAir(c));
+        if (aa && aa.cost > w.lumen && !w.cheats?.infiniteLumen) {
+          saving = aa.label;
+          break;
+        }
+      }
+      // 经济明显不足且压力不大时，不为昂贵的进攻单位攒钱（先把生产单位种起来）
+      const econLacking = obs.producers < this.econTarget(w, obs) * 0.6 && obs.maxPressure < 0.6 && obs.progress < this.econStop(w);
+      const skipSaving = econLacking && !!bestAny && bestAny.kind !== 'econ' && bestAny.cost > 150;
+      if (!skipSaving && !exposed.length && bestAny && bestAny !== best && bestAny.score > (best?.score ?? 0) + 22 && bestAny.score >= threshold && !bestAny.emergency) {
         saving = bestAny.label;
         // 仍允许执行便宜且非常紧急的行动
         if (!best || !best.emergency) break;
@@ -259,7 +271,7 @@ export class AIAgent {
     if (obs.maxPressure > 1.15 || obs.lanes.some((l) => this.isEmergency(l))) {
       to = 'defense';
       why = `最大行压力 ${obs.maxPressure.toFixed(2)}，转入防御`;
-    } else if (obs.progress < this.base.econStop - 0.1 && obs.maxPressure < 0.5 && obs.producers < target) {
+    } else if (obs.progress < this.econStop(w, this.base) - 0.1 && obs.maxPressure < 0.5 && obs.producers < target) {
       to = 'economy';
       why = '前期压力低，扩张经济';
     } else if (obs.progress > 0.45 && obs.totalDps > needTotal * 1.6) {
@@ -275,12 +287,22 @@ export class AIAgent {
 
   /* ============================ 估算 ============================ */
 
+  /** 经济扩张截止进度：首领关的主要威胁在最后一波，扩张期更长 */
+  private econStop(w: World, p: StrategyParams = this.params): number {
+    const boss = !!w.level.bossLevel || !!w.level.gen?.bossAtEnd;
+    return Math.min(0.95, p.econStop + (boss ? 0.3 : 0));
+  }
+
   econTarget(w: World, obs: Observation): number {
-    const activeRows = Math.max(1, obs.landRows);
+    // 有水路敌人时，水路同样需要经济支撑（浮台 + 射手）
+    const waterRows = obs.lanes.filter((l) => l.water && this.laneActive(w, obs, l)).length;
+    const activeRows = Math.max(1, obs.landRows + waterRows * 0.8);
     let t = this.params.econPerRow * activeRows;
     if (!obs.skyDrops) t *= 1.15;
-    if (Number.isFinite(w.totalWaves) && w.totalWaves <= 6) t *= 0.75;
-    if (obs.progress > this.params.econStop) {
+    const boss = !!w.level.bossLevel || !!w.level.gen?.bossAtEnd;
+    if (boss) t *= 1.2;
+    else if (Number.isFinite(w.totalWaves) && w.totalWaves <= 6) t *= 0.75;
+    if (obs.progress > this.econStop(w)) {
       // 扩张期结束：不再扩张，但被吃掉的生产单位要补回一部分
       return obs.progress < 0.85 ? Math.max(obs.producers, t * 0.5) : obs.producers;
     }
@@ -316,7 +338,7 @@ export class AIAgent {
     const nextFlag = w.waves[w.waveIndex]?.flag || w.waves[w.waveIndex + 1]?.flag;
     const waveHp = obs.expectedWaveHp * (nextFlag ? 2.0 : 1) * (1 + this.params.lookahead * 0.35);
     const crossTime = Math.max(12, (w.cols - 2) / 0.24);
-    const ramp = obs.wave === 0 ? 0.3 : obs.wave === 1 ? 0.55 : obs.wave === 2 ? 0.8 : 1;
+    const ramp = obs.wave === 0 ? 0.45 : obs.wave === 1 ? 0.75 : obs.wave === 2 ? 0.95 : 1;
     const share = Math.max(0.05, this.laneShare(obs, lane.water));
     const base = ((waveHp * share) / crossTime) * this.params.safety * ramp;
     let current = 0;
@@ -472,7 +494,7 @@ export class AIAgent {
     const danger = emergencies * 30 + Math.max(0, Math.min(1.5, obs.maxPressure) - 0.8) * 20;
     if (d.behavior === 'upgradeProducer') {
       if (obs.producers < target * 0.7 || w.lumen < cost + 75) return;
-      if (obs.progress > this.params.econStop + 0.1) return;
+      if (obs.progress > this.econStop(w) + 0.1) return;
       for (const u of obs.units) {
         if (u.def.id !== d.upgradeOf) continue;
         const cmd: Command = { type: 'place', card: d.id, row: u.row, col: u.col };
@@ -486,6 +508,8 @@ export class AIAgent {
     const lack = 1 - obs.producers / Math.max(1, target);
     let score = 50 + 45 * lack - danger;
     if (obs.wave === 0) score += 15;
+    // 前几波压力低时优先把经济铺开
+    if (obs.wave <= 2 && lack > 0.35 && obs.maxPressure < 0.6) score += 20;
     // 开局：在第一个敌人出现前优先经济，但第一个射手不能拖
     const anyEnemies = obs.enemies.length > 0;
     const shooters = obs.attackers;
@@ -734,8 +758,16 @@ export class AIAgent {
       if (!close && flyers.length < 2 && airDps > 20) return;
       const cmd = this.anyCell(w, d);
       if (!cmd) return;
-      out.push({ cmd, score: 50 + flyers.length * 10 + (close ? 40 : 0), kind: 'bomb', label: `${d.name}（吹走 ${flyers.length} 个飞行敌人）`, reasons: ['飞行敌人威胁', close ? '飞行敌人接近防线' : '对空火力不足'], cost, emergency: close });
+      // 飞行敌人逼近时，一次清场比再建昂贵的对空塔更可靠
+      out.push({ cmd, score: 50 + flyers.length * 18 + (close ? 160 : 0), kind: 'bomb', label: `${d.name}（吹走 ${flyers.length} 个飞行敌人）`, reasons: ['飞行敌人威胁', close ? '飞行敌人接近防线' : '对空火力不足'], cost, emergency: close });
     }
+  }
+
+  /** 候选行动能否对付飞行敌人 */
+  private isAntiAir(c: Candidate): boolean {
+    if (c.cmd.type !== 'place') return false;
+    const d = CONTENT.units.get(c.kind === 'plate' && c.then ? c.then.card : c.cmd.card);
+    return !!d && (!!d.antiAir || d.behavior === 'chain' || d.behavior === 'gale');
   }
 
   private anyCell(w: World, d: UnitDef): Command | undefined {
@@ -849,7 +881,7 @@ export class AIAgent {
 
   private supportCandidates(w: World, obs: Observation, d: UnitDef, cost: number, out: Candidate[]): void {
     if (this.params.supportBias <= 0) return;
-    if (obs.producers < this.econTarget(w, obs) * 0.7 && obs.progress < this.params.econStop) return;
+    if (obs.producers < this.econTarget(w, obs) * 0.7 && obs.progress < this.econStop(w)) return;
     let best: Candidate | undefined;
     const attackers = obs.units.filter((u) => unitDps(w, u) > 0);
     for (const [r, c] of this.cellsFor(w, d)) {
@@ -926,7 +958,7 @@ export class AIAgent {
   private upgradeCandidates(w: World, obs: Observation, out: Candidate[]): void {
     if (this.params.upgradeBias <= 0) return;
     if (w.rules?.c.noUpgrades) return;
-    const econDone = obs.producers >= this.econTarget(w, obs) * 0.9 || obs.progress > this.params.econStop;
+    const econDone = obs.producers >= this.econTarget(w, obs) * 0.9 || obs.progress > this.econStop(w);
     if (!econDone) return;
     let best: Candidate | undefined;
     for (const u of obs.units) {
