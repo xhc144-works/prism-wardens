@@ -19,7 +19,7 @@
 | [electron-updater](https://www.electron.build/auto-update) | MIT | 自动更新（GitHub Releases，blockmap 增量下载） |
 | [7zip-bin](https://github.com/develar/7zip-bin) | MIT（7-Zip 本体为 LGPL） | 游戏内导入时解压玩家选择的原版安装包 |
 
-开发与构建工具（不随应用分发）：Vite、TypeScript、Vitest、Playwright、esbuild、electron-builder、tsx（均为 MIT / Apache-2.0）。
+开发与构建工具（不随应用分发）：Vite、TypeScript、Vitest、Playwright、esbuild、electron-builder 26、tsx（均为 MIT / Apache-2.0）。Windows 安装程序由 electron-builder 的 NSIS 3.12 工具集生成（NSIS 为 zlib/libpng 许可，安装程序中只包含其运行时存根与插件）。
 
 ## 调研过的项目
 
