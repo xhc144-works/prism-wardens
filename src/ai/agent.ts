@@ -3,7 +3,7 @@ import type { World } from '../core/sim/world';
 import { RANK_MUL } from '../core/constants';
 import { SKILLS, ITEMS } from '../core/content/abilities';
 import { CONTENT } from '../core/content/registry';
-import { observe, unitDps, type LaneInfo, type Observation, type EnemyObs } from './observe';
+import { observe, rangeFactor, unitDps, type LaneInfo, type Observation, type EnemyObs } from './observe';
 import { getStrategy, type StrategyParams } from './strategies';
 import { buildDeck } from './deckBuilder';
 
@@ -577,7 +577,7 @@ export class AIAgent {
 
   private estimateDps(w: World, d: UnitDef): number {
     const dmg = (d.damage ?? 0) * w.metaMul(d) * (d.lunar || d.solar ? (w.isDark() ? d.lunar ?? 1 : d.solar ?? 1) : 1);
-    if (d.behavior === 'shooter') return (dmg * (d.shots ?? 1) * (d.lanes?.length ?? 1)) / (d.interval ?? 1.4);
+    if (d.behavior === 'shooter') return ((dmg * (d.shots ?? 1) * (d.lanes?.length ?? 1)) / (d.interval ?? 1.4)) * rangeFactor(w, d.range);
     if (d.behavior === 'lobber') return (dmg / (d.interval ?? 2.4)) * (d.splash ? 1.3 : 1);
     if (d.behavior === 'chain') return (dmg * (1 + (d.chains ?? 3) * 0.5)) / (d.interval ?? 2);
     if (d.behavior === 'aura') return (dmg * (d.shots ?? 1)) / (d.interval ?? 2);

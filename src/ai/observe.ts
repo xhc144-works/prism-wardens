@@ -96,13 +96,19 @@ export interface Observation {
   levelPool: EnemyDef[];
 }
 
+/** 短程射手只在敌人走完最后几格时输出：按射程折算有效火力 */
+export function rangeFactor(w: World, range?: number): number {
+  if (range == null) return 1;
+  return Math.min(1, (range + 0.5) / Math.max(1, w.cols * 0.6));
+}
+
 export function unitDps(w: World, u: Unit): number {
   const d = u.def;
   if (u.dead) return 0;
   const rate = w.unitRateMul(u);
   switch (d.behavior) {
     case 'shooter':
-      return ((w.unitDamage(u) * (d.shots ?? 1)) / (d.interval ?? 1.4)) * rate;
+      return ((w.unitDamage(u) * (d.shots ?? 1)) / (d.interval ?? 1.4)) * rate * rangeFactor(w, d.range);
     case 'lobber':
       return ((w.unitDamage(u) / (d.interval ?? 2.4)) * rate) * (d.splash ? 1.3 : 1);
     case 'chain':
