@@ -215,8 +215,16 @@ let updater = null;
 function sendUpdate(s) {
   if (win && !win.isDestroyed()) win.webContents.send('update:status', s);
 }
+// 本地研究构建（内置原版素材）不接入公开的更新源，避免被替换成不含素材的公开版本
+const researchBuild = (() => {
+  try {
+    return !!require('../package.json').researchBuild;
+  } catch {
+    return false;
+  }
+})();
 function getUpdater() {
-  if (!app.isPackaged) return null;
+  if (!app.isPackaged || researchBuild) return null;
   if (updater) return updater;
   try {
     updater = require('electron-updater').autoUpdater;

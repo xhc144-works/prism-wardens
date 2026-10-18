@@ -9,6 +9,7 @@ import { navigate } from '../../app/nav';
 import { store, useStore } from '../../app/store';
 import { audio } from '../../audio/audio';
 import { native } from '../../platform/native';
+import { PVZ } from '../../pvz/assets';
 import { Btn } from '../components/ui';
 
 /** 主菜单背景：一局真实运行的 AI 对战 */
@@ -105,6 +106,15 @@ export function MenuScreen() {
             档案：<b style={{ color: 'var(--text)' }}>{p.name}</b> · 金币 <span class="gold-text">{p.coins}</span> · v{GAME_VERSION}
             {store.saving ? ' · 保存中…' : store.lastSaved ? ' · 已自动保存' : ''}
           </div>
+          {native?.assets && !PVZ.available && (
+            <div class="menu-import">
+              <b>想要原版的角色、动画与音乐？</b>
+              <span>导入你自己合法持有的《植物大战僵尸》安装包或游戏目录，即可切换到经典画面。素材只在本机转换与保存。</span>
+              <Btn small kind="primary" onClick={() => navigate({ name: 'settings' })}>
+                去导入
+              </Btn>
+            </div>
+          )}
         </div>
         <div style={{ flex: 1 }} />
         <div class="menu-grid">

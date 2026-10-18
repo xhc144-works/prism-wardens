@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check:public": "node scripts/check-public-build.mjs",
     "preview": "vite preview --port 4173",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
@@ -19,6 +20,7 @@
     "electron": "electron .",
     "dist:win": "npm run build && electron-builder --win --x64 --publish never",
     "dist:dir": "npm run build && electron-builder --dir",
+    "dist:research": "node scripts/dist-research.mjs",
     "release": "npm run build && electron-builder --win --x64 --publish always",
     "assets:import": "tsx tools/import/cli.ts",
     "predev": "node scripts/vendor-openmpt.mjs",
@@ -56,6 +58,7 @@
     },
     "files": [
       "dist/**/*",
+      "!dist/pvz/**",
       "electron/**/*",
       "build/icon.png",
       "package.json"

@@ -31,6 +31,9 @@ jobs:
         run: npm test
       - name: 构建
         run: npm run build
+      - name: 校验公开构建不含原版素材
+        shell: bash
+        run: node scripts/check-public-build.mjs
       - name: 打包并发布（含 latest.yml 与 blockmap，供自动增量更新）
         run: npx electron-builder --win --x64 --publish always
         env:

@@ -36,6 +36,9 @@ jobs:
         run: npm run sim -- --level 1-1,1-2,1-3,1-4 --strategy balanced,defense --runs 5 --json sim-output/sim.json
       - name: 构建 Web 版本
         run: npm run build
+      - name: 校验公开构建不含原版素材
+        shell: bash
+        run: node scripts/check-public-build.mjs
       - name: 安装 Playwright 浏览器
         run: npx playwright install --with-deps chromium
       - name: 端到端测试
@@ -66,6 +69,9 @@ jobs:
         run: npm ci
       - name: 构建
         run: npm run build
+      - name: 校验公开构建不含原版素材
+        shell: bash
+        run: node scripts/check-public-build.mjs
       - name: 打包 NSIS 安装包与便携版
         run: npx electron-builder --win --x64 --publish never
       - name: 静默安装 → 校验 → 静默卸载
@@ -76,10 +82,16 @@ jobs:
           Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
           $dir = Join-Path $env:LOCALAPPDATA 'Programs\Prism Wardens'
           $exe = Join-Path $dir 'Prism Wardens.exe'
+          # NSIS 会在临时目录里重新启动自身，Start-Process -Wait 可能早于安装完成返回
+          for ($i = 0; $i -lt 120 -and -not (Test-Path $exe); $i++) { Start-Sleep -Seconds 1 }
           if (-not (Test-Path $exe)) { throw "安装失败：找不到 $exe" }
+          $reg = $null
+          for ($i = 0; $i -lt 60 -and -not $reg; $i++) {
+            $reg = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' | Get-ItemProperty | Where-Object { $_.DisplayName -like '*Prism Wardens*' }
+            if (-not $reg) { Start-Sleep -Seconds 1 }
+          }
           $vi = (Get-Item $exe).VersionInfo
           Write-Host "已安装: $($vi.ProductName) $($vi.ProductVersion) / $($vi.FileVersion)"
-          $reg = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' | Get-ItemProperty | Where-Object { $_.DisplayName -like '*Prism Wardens*' }
           if (-not $reg) { throw '未找到卸载注册表项' }
           Write-Host "卸载项: $($reg.DisplayName) $($reg.DisplayVersion)"
           Start-Process -FilePath (Join-Path $dir 'Uninstall Prism Wardens.exe') -ArgumentList '/S' -Wait

@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
+// 这些用例覆盖原始（公开构建）界面；本地研究构建内置经典素材时用 ?skin=original 固定皮肤。
+
 function watchErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -12,7 +14,7 @@ function watchErrors(page: Page): string[] {
 
 test('主菜单与全部界面可以打开且无报错', async ({ page }) => {
   const errors = watchErrors(page);
-  await page.goto('/');
+  await page.goto('/?skin=original');
   await expect(page.locator('.logo')).toHaveText('棱镜守卫');
   for (const t of ['修改器', 'AI 控制台', '挑战编辑器', '关卡编辑器', '单位编辑器', '录像与战报', '图鉴', '商店', '成就', '存档', '设置']) {
     await page.click(`.menu-tile:has-text("${t}")`);
@@ -29,7 +31,7 @@ test('主菜单与全部界面可以打开且无报错', async ({ page }) => {
 
 test('人类可以手动部署单位并收集光能', async ({ page }) => {
   const errors = watchErrors(page);
-  await page.goto('/');
+  await page.goto('/?skin=original');
   await page.click('text=冒险模式');
   await page.click('.level-node >> nth=0');
   await page.click('text=开始战斗');
@@ -51,7 +53,7 @@ test('人类可以手动部署单位并收集光能', async ({ page }) => {
 
 test('AI 托管可以通关第一关并生成战报与录像', async ({ page }) => {
   const errors = watchErrors(page);
-  await page.goto('/');
+  await page.goto('/?skin=original');
   await page.click('text=冒险模式');
   await page.click('.level-node >> nth=0');
   await page.selectOption('select >> nth=0', 'ai');
@@ -61,7 +63,7 @@ test('AI 托管可以通关第一关并生成战报与录像', async ({ page }) 
   await page.click('button:has-text("查看战报")');
   await expect(page.locator('text=伤害贡献')).toBeVisible();
   await page.click('button:has-text("返回")');
-  await page.goto('/');
+  await page.goto('/?skin=original');
   await page.click('.menu-tile:has-text("录像与战报")');
   await page.click('button:has-text("回放") >> nth=0');
   await expect(page.locator('canvas')).toBeVisible();
@@ -71,7 +73,7 @@ test('AI 托管可以通关第一关并生成战报与录像', async ({ page }) 
 
 test('AI 控制台批量模拟（多线程 Worker）', async ({ page }) => {
   const errors = watchErrors(page);
-  await page.goto('/');
+  await page.goto('/?skin=original');
   await page.click('.menu-tile:has-text("AI 控制台")');
   await page.click('.tab:has-text("批量模拟")');
   await page.fill('input[type=number] >> nth=0', '2');
@@ -82,7 +84,7 @@ test('AI 控制台批量模拟（多线程 Worker）', async ({ page }) => {
 });
 
 test('修改器：开启无限光能后战斗中光能显示为 ∞', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?skin=original');
   await page.click('.menu-tile:has-text("修改器")');
   await page.click('label:has-text("在战斗中启用修改器")');
   await page.click('label:has-text("无限光能")');

@@ -1588,3 +1588,18 @@ html.skin-classic .menu-tile {
   gap: 16px 22px;
   justify-content: center;
 }
+
+.menu-import {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 340px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 210, 90, 0.45);
+  border-radius: 10px;
+  background: rgba(40, 30, 6, 0.55);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.menu-import b { color: #ffd76a; font-size: 13px; }
+.menu-import .btn { align-self: flex-start; }
