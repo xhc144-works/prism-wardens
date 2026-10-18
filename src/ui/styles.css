@@ -1065,3 +1065,380 @@ table.table tr:hover td {
   overflow: hidden;
   background: #000;
 }
+
+/* ---------- 经典皮肤：800×600 舞台与关卡选择 ---------- */
+.pvz-stage-wrap {
+  background: #000;
+  overflow: hidden;
+}
+.pvz-stage-blur {
+  position: absolute;
+  inset: -20px;
+  filter: blur(14px) brightness(0.55);
+}
+.pvz-stage-blur canvas {
+  object-fit: cover;
+}
+.pvz-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 800px;
+  height: 600px;
+  transform-origin: 0 0;
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+.pvz-stage > * {
+  position: absolute;
+}
+.pvz-title {
+  text-align: center;
+  font-size: 30px;
+  font-weight: 900;
+  color: #f2e464;
+  letter-spacing: 6px;
+  text-shadow: 0 3px 0 #3a2a0c, 0 0 2px #000, 0 0 8px rgba(0, 0, 0, 0.5);
+}
+.pvz-tabs {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.pvz-tab {
+  flex: 1;
+  border: 2px solid #5b3a17;
+  border-radius: 8px 8px 3px 3px;
+  background: linear-gradient(#b98a4c, #8a5d2a);
+  color: #fff3c6;
+  font: 800 13px 'Microsoft YaHei', sans-serif;
+  padding: 5px 4px;
+  cursor: pointer;
+  text-shadow: 0 1px 0 #3b2208;
+}
+.pvz-tab.active {
+  background: linear-gradient(#ffe08a, #d9a441);
+  color: #4a2a05;
+  text-shadow: none;
+}
+.pvz-level-row {
+  display: flex;
+  gap: 4px;
+}
+.pvz-level-win {
+  position: relative;
+  width: 118px;
+  height: 120px;
+  cursor: pointer;
+}
+.pvz-level-win .thumb {
+  position: absolute;
+  left: 19px;
+  top: 6px;
+  width: 80px;
+  height: 65px;
+  overflow: hidden;
+}
+.pvz-level-win.locked .thumb {
+  filter: grayscale(1) brightness(0.5);
+}
+.pvz-level-win .lv-name {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 76px;
+  height: 30px;
+  font-size: 10.5px;
+  line-height: 13px;
+  text-align: center;
+  color: #000;
+  overflow: hidden;
+}
+.pvz-level-win .lv-boss {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  background: #b00;
+  color: #fff;
+  font: 800 10px sans-serif;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.pvz-level-detail {
+  color: #3a2208;
+  padding: 12px 14px;
+  background: rgba(255, 240, 200, 0.35);
+  border: 2px solid rgba(120, 80, 30, 0.35);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.pvz-level-detail .lv-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: #2c6b12;
+  text-shadow: 0 1px 0 #fff6d0;
+}
+.pvz-level-detail .lv-desc {
+  margin: 4px 0 6px;
+  font-size: 13px;
+}
+.pvz-level-detail .lv-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+}
+.pvz-level-detail .lv-info span,
+.pvz-tag {
+  background: rgba(90, 55, 20, 0.15);
+  border: 1px solid rgba(90, 55, 20, 0.35);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.pvz-tag.red {
+  background: #b11;
+  color: #fff;
+  border-color: #600;
+  font-size: 12px;
+}
+.pvz-level-detail .lv-sub {
+  margin: 8px 0 2px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #6b3d0a;
+}
+.lv-zombie {
+  width: 58px;
+  height: 58px;
+  border-radius: 6px;
+  background: rgba(60, 40, 20, 0.12);
+}
+.pvz-progress {
+  text-align: center;
+  color: #4a2a05;
+  font-weight: 800;
+  font-size: 13px;
+}
+.pvz-btn.disabled {
+  filter: grayscale(0.8) brightness(0.8);
+  cursor: default;
+}
+
+/* ---------- 经典皮肤：选卡界面 ---------- */
+.pvz-bank {
+  height: 87px;
+}
+.pvz-bank-slot {
+  position: absolute;
+  width: 50px;
+  height: 70px;
+  cursor: pointer;
+}
+.pvz-sun-count {
+  position: absolute;
+  left: 9px;
+  top: 63px;
+  width: 60px;
+  text-align: center;
+  font: 900 15px 'Microsoft YaHei', sans-serif;
+  color: #000;
+}
+.pvz-chooser {
+  width: 465px;
+  height: 513px;
+}
+.pvz-chooser-title {
+  position: absolute;
+  left: 0;
+  width: 465px;
+  top: 10px;
+  text-align: center;
+  font: 900 20px 'Microsoft YaHei', sans-serif;
+  color: #f4d34b;
+  text-shadow: 0 2px 0 #4d2507;
+  letter-spacing: 2px;
+}
+.pvz-chooser-grid {
+  position: absolute;
+  left: 22px;
+  top: 45px;
+  width: 424px;
+  display: grid;
+  grid-template-columns: repeat(8, 50px);
+  gap: 3px 3px;
+}
+.pvz-chooser-cell {
+  width: 50px;
+  height: 70px;
+  cursor: pointer;
+}
+.pvz-chooser-cell.disabled {
+  cursor: not-allowed;
+}
+.pvz-chooser-cell:hover canvas {
+  filter: brightness(1.15);
+}
+.pvz-chooser-extra {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  top: 352px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pvz-chip {
+  border: 2px solid #3a1d06;
+  background: #6a3a14;
+  color: #f7e2b0;
+  border-radius: 6px;
+  font: 700 11px 'Microsoft YaHei', sans-serif;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.pvz-chip.on {
+  background: #d7a33a;
+  color: #2f1500;
+}
+.pvz-chip:disabled {
+  opacity: 0.4;
+}
+.pvz-rock {
+  position: absolute;
+  left: 154px;
+  top: 458px;
+  width: 156px;
+  height: 42px;
+  border: 0;
+  background: var(--pvz-seedchooser-btn) no-repeat;
+  color: #f8e65c;
+  font: 900 18px 'Microsoft YaHei', sans-serif;
+  text-shadow: 0 2px 0 #3c1a00;
+  cursor: pointer;
+}
+.pvz-rock.disabled {
+  background-image: var(--pvz-seedchooser-btn-dis);
+  color: #9c8a6a;
+}
+.pvz-deck-side {
+  left: 520px;
+  top: 360px;
+  width: 268px;
+  padding: 10px 12px;
+  background: rgba(30, 32, 50, 0.82);
+  border: 3px solid #6e6f8f;
+  border-radius: 12px;
+  color: #eee6c8;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 4px 0 #262739;
+}
+.pvz-side-title {
+  font: 900 15px 'Microsoft YaHei', sans-serif;
+  color: #f2e464;
+}
+.pvz-side-info {
+  font-size: 12px;
+  color: #d8d0b0;
+}
+.pvz-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.pvz-field span {
+  width: 52px;
+}
+.pvz-field select {
+  flex: 1;
+  background: #2a2d45;
+  color: #fff;
+  border: 1px solid #8889aa;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.pvz-chooser-cell.chosen canvas {
+  filter: brightness(0.4) grayscale(0.4);
+}
+
+/* ---------- 经典皮肤：图鉴 ---------- */
+.pvz-almanac-btn {
+  height: 26px;
+  border: 0;
+  background: linear-gradient(#7b7fa6, #4e5175);
+  border: 2px solid #2e3050;
+  border-radius: 6px;
+  color: #fff;
+  font: 700 13px 'Microsoft YaHei', sans-serif;
+  cursor: pointer;
+}
+.pvz-almanac-btn:hover {
+  filter: brightness(1.15);
+}
+.pvz-rock.stone {
+  background: linear-gradient(#8f93b8, #5c5f86);
+  border: 3px solid #3a3c5e;
+  border-radius: 8px;
+  color: #a6ff7a;
+}
+.pvz-almanac-more {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.pvz-almanac-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pvz-almanac-seed,
+.pvz-almanac-zombie {
+  width: 50px;
+  height: 70px;
+  cursor: pointer;
+}
+.pvz-almanac-zombie {
+  width: 76px;
+  height: 76px;
+}
+.pvz-almanac-seed.sel {
+  outline: 3px solid #fff26b;
+  border-radius: 4px;
+}
+.pvz-almanac-seed:hover canvas,
+.pvz-almanac-zombie:hover canvas {
+  filter: brightness(1.15);
+}
+.pvz-almanac-desc {
+  font: 12px/1.45 'Microsoft YaHei', sans-serif;
+  color: rgb(40, 50, 90);
+  overflow: auto;
+}
+.pvz-almanac-desc .kw,
+.pvz-almanac-text .kw {
+  color: #7a1d0b;
+  font-weight: 800;
+}
+.pvz-almanac-desc .stat,
+.pvz-almanac-text .stat {
+  font-weight: 800;
+}
+.pvz-almanac-text {
+  margin-top: 6px;
+  white-space: pre-line;
+}
+.pvz-almanac-text .gap {
+  height: 4px;
+}
+.pvz-almanac-cost,
+.pvz-almanac-recharge {
+  font: 12px 'Microsoft YaHei', sans-serif;
+  color: #fff;
+}
+.pvz-almanac-recharge {
+  text-align: right;
+  color: rgb(40, 50, 90);
+}

@@ -10,9 +10,8 @@ import { store, useStore } from '../../app/store';
 import { Btn, CardTile, Select, TopBar, UnitTooltip, toast, useTooltip } from '../components/ui';
 import { EnemyPreview, weatherText } from './Levels';
 
-export function DeckScreen(props: { setup: BattleSetup }) {
-  useStore();
-  const { setup } = props;
+/** 选卡界面的状态与操作（原创界面与经典界面共用） */
+export function useDeckModel(setup: BattleSetup) {
   const p = store.profile;
   const L = setup.level;
   const rules = useMemo(() => (setup.rules ? new RuleEngine(setup.rules) : null), [setup.rules]);
@@ -30,7 +29,6 @@ export function DeckScreen(props: { setup: BattleSetup }) {
   const [control, setControl] = useState<ControlMode>(setup.control ?? 'human');
   const [strategy, setStrategy] = useState(setup.strategy ?? 'balanced');
   const [difficulty, setDifficulty] = useState(setup.difficulty ?? store.settings.difficulty);
-  const [tip, onTip] = useTooltip();
   const [reasons, setReasons] = useState<string[]>([]);
 
   const toggle = (id: string) => {
@@ -58,6 +56,22 @@ export function DeckScreen(props: { setup: BattleSetup }) {
     navigate({ name: 'battle', setup: { ...setup, deck, skills, items, control, strategy, difficulty } }, true);
   };
 
+  const autoCoach = () => {
+    const ids = [...CONTENT.levels.keys()];
+    const from = ids.indexOf(L.id);
+    const list = from >= 0 && setup.mode === 'adventure' ? ids.slice(from, from + 6).filter((id) => CONTENT.level(id)?.chapter) : [L.id];
+    const kk = store.data.aiKnowledge[L.id];
+    const d = buildDeck({ level: L, available: pool, size: slots, strategy: kk?.params ?? getStrategy(strategy), include: kk?.include, exclude: kk?.exclude }).deck;
+    navigate({ name: 'battle', setup: { ...setup, deck: d, control: 'ai', strategy, difficulty, coach: { levels: list, index: 0, attempt: 1, maxAttempts: 4, strategy, log: [] } } }, true);
+  };
+  return { p, L, rules, slots, pool, allowed, forced, usable, deck, setDeck, skills, setSkills, items, setItems, control, setControl, strategy, setStrategy, difficulty, setDifficulty, reasons, toggle, recommend, start, autoCoach };
+}
+
+export function DeckScreen(props: { setup: BattleSetup }) {
+  useStore();
+  const { setup } = props;
+  const [tip, onTip] = useTooltip();
+  const { p, L, rules, slots, pool, allowed, deck, skills, setSkills, items, setItems, control, setControl, strategy, setStrategy, difficulty, setDifficulty, reasons, toggle, recommend, start, autoCoach } = useDeckModel(setup);
   return (
     <div class="screen">
       <TopBar title={`准备战斗 · ${L.name}`} onBack={() => back()}>
@@ -162,14 +176,7 @@ export function DeckScreen(props: { setup: BattleSetup }) {
             <div class="row" style={{ marginTop: 8 }}>
               <Btn
                 small
-                onClick={() => {
-                  const ids = [...CONTENT.levels.keys()];
-                  const from = ids.indexOf(L.id);
-                  const list = from >= 0 && setup.mode === 'adventure' ? ids.slice(from, from + 6).filter((id) => CONTENT.level(id)?.chapter) : [L.id];
-                  const kk = store.data.aiKnowledge[L.id];
-                  const d = buildDeck({ level: L, available: pool, size: slots, strategy: kk?.params ?? getStrategy(strategy), include: kk?.include, exclude: kk?.exclude }).deck;
-                  navigate({ name: 'battle', setup: { ...setup, deck: d, control: 'ai', strategy, difficulty, coach: { levels: list, index: 0, attempt: 1, maxAttempts: 4, strategy, log: [] } } }, true);
-                }}
+                onClick={autoCoach}
                 title="AI 从本关开始连续挑战，失败后分析原因、调整策略并自动重试"
               >
                 🤖 AI 自动连续闯关

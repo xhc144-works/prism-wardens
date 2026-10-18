@@ -3,6 +3,7 @@
  * 样式表通过 var(--pvz-*) 引用（未导入资源时这些变量不存在，界面保持原创风格）。
  */
 import { PVZ } from '../../pvz/assets';
+import { store } from '../../app/store';
 
 const VARS: Record<string, string> = {
   'btn-l': 'IMAGE_BUTTON_LEFT',
@@ -44,6 +45,7 @@ export async function applyClassicTheme(): Promise<void> {
   if (!PVZ.available) return;
   const root = document.documentElement;
   root.classList.add('pvz-theme');
+  if (store.settings.skin !== 'original') root.classList.add('skin-classic');
   await Promise.all(
     Object.entries(VARS).map(async ([k, id]) => {
       const e = PVZ.imageEntry(id);

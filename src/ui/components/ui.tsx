@@ -1,3 +1,4 @@
+import { PvzDialog } from '../classic/PvzDialog';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { UnitDef } from '../../core/types';
@@ -90,6 +91,14 @@ export function Tabs<T extends string>(props: { tabs: { id: T; label: string }[]
 }
 
 export function Modal(props: { children: ComponentChildren; onClose?: () => void; title?: string; width?: number }) {
+  if (document.documentElement.classList.contains('skin-classic'))
+    return (
+      <PvzDialog title={props.title} onClose={undefined} width={(props.width ?? 520) + 80}>
+        <div class="pvz-modal-body" onClick={(e) => e.stopPropagation()}>
+          {props.children}
+        </div>
+      </PvzDialog>
+    );
   return (
     <div class="overlay" onClick={(e) => e.target === e.currentTarget && props.onClose?.()}>
       <div class="modal" style={{ width: props.width }}>

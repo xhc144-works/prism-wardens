@@ -5,6 +5,9 @@ import { store } from './app/store';
 import { audio } from './audio/audio';
 import { PVZ } from './pvz/assets';
 import { applyClassicTheme } from './ui/classic/theme';
+import { applyClassicNames } from './ui/classic/names';
+import { ClassicLoading } from './ui/classic/ClassicLoading';
+import { installClassicIcons } from './ui/classic/icons';
 
 async function boot(): Promise<void> {
   await Promise.all([store.load(), PVZ.init()]);
@@ -17,6 +20,7 @@ async function boot(): Promise<void> {
     store.settings.skin = q.get('skin') as 'classic' | 'original';
     audio.preferClassic = store.settings.skin !== 'original';
   }
+  if (PVZ.available && store.settings.skin !== 'original') applyClassicNames();
   const quick = q.get('quick');
   if (quick) {
     const [{ CONTENT }, { makeAIGameConfig }, { navigate }] = await Promise.all([import('./core/content/registry'), import('./ai/runner'), import('./app/nav')]);
@@ -27,7 +31,17 @@ async function boot(): Promise<void> {
       navigate({ name: 'battle', setup: { mode: 'adventure', level, deck: cfg.deck, control: q.get('ai') ? 'ai' : 'human', seed: Number(q.get('seed') ?? 1) } });
     }
   }
-  render(<App />, document.getElementById('app')!);
+  const root = document.getElementById('app')!;
+  if (PVZ.available && store.settings.skin !== 'original' && !quick) {
+    // 经典皮肤：先显示原版风格载入画面并预载资源
+    await new Promise<void>((resolve) => render(<ClassicLoading onDone={resolve} />, root));
+    installClassicIcons();
+    render(null, root);
+  } else if (PVZ.available && store.settings.skin !== 'original') {
+    await (await import('./ui/classic/preload')).preloadClassic();
+    installClassicIcons();
+  }
+  render(<App />, root);
 
   // 首次用户交互后启用音频（浏览器策略要求）
   const unlock = () => {

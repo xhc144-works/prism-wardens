@@ -4,8 +4,21 @@ import { drawEnemy } from './art/enemies';
 
 const cache = new Map<string, string>();
 
+/** 可替换的图标来源（经典皮肤用原版动画截帧），返回 null 时回退到原创美术 */
+export interface IconProvider {
+  unit(def: UnitDef, size: number): string | null;
+  enemy(def: EnemyDef, size: number): string | null;
+}
+let provider: IconProvider | null = null;
+export function setIconProvider(p: IconProvider | null): void {
+  provider = p;
+  cache.clear();
+}
+
 /** 把单位绘制成图标（data URL），用于卡牌、图鉴、编辑器 */
 export function unitIcon(def: UnitDef, size = 96): string {
+  const alt = provider?.unit(def, size);
+  if (alt) return alt;
   const key = `u:${def.id}:${size}:${def.colors.a}:${def.art}`;
   const hit = cache.get(key);
   if (hit) return hit;
@@ -23,6 +36,8 @@ export function unitIcon(def: UnitDef, size = 96): string {
 }
 
 export function enemyIcon(def: EnemyDef, size = 96): string {
+  const alt = provider?.enemy(def, size);
+  if (alt) return alt;
   const key = `e:${def.id}:${size}:${def.colors.a}`;
   const hit = cache.get(key);
   if (hit) return hit;
