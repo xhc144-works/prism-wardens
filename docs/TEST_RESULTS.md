@@ -53,7 +53,7 @@ classic after reload true   pvz manifest via app:// true
 errors none
 \`\`\`
 
-即：全新用户目录 → 导入 9 秒完成 → 素材写入用户目录并经 \`app://\` 协议提供 → 重新载入后自动切换到经典画面（原版主菜单）。该测试在 Linux（Xvfb）上运行；Windows 上同一流程使用 7zip-bin 的 win/x64 版本。
+即：全新用户目录 → 导入 9 秒完成 → 素材写入用户目录并经 `app://` 协议提供 → 重新载入后自动切换到经典画面（原版主菜单）。该测试在 Linux（Xvfb）上运行；Windows 上同一流程使用 7zip-bin 的 win/x64 版本。
 
 ## AI 批量模拟（全部 30 关）
 
@@ -111,7 +111,7 @@ npm run sim -- --level <全部关卡> --strategy balanced,defense --runs 3
 
 CI 在 windows-latest 上构建 NSIS 安装包与便携版，执行“静默安装 → 校验可执行文件、版本信息与卸载注册表项 → 静默卸载 → 校验文件已删除”。
 
-已知问题与处理：部分运行中安装程序启动约 2 秒后以 `0xC0000005`（访问冲突）退出，同一镜像（windows-2025）上同一安装包在其他运行中安装成功。安装包原先由 electron-builder 25 自带的 NSIS 3.0.4.1（2019 年）构建；已升级到 electron-builder 26.15.3 并改用 NSIS 3.12 工具集，结果以最新一次 CI 为准（见仓库 Actions 页面）。
+已知问题与处理：部分运行中安装程序启动约 2 秒后以 `0xC0000005`（访问冲突）退出，同一镜像（windows-2025）上同一安装包在其他运行中安装成功（4 次运行中失败 3 次）。安装包原先由 electron-builder 25 自带的 NSIS 3.0.4.1（2019 年）构建；已升级到 electron-builder 26.15.3 并改用 NSIS 3.12 工具集。升级后的第一次 CI（run 12）中安装、版本与注册表校验、卸载全部通过（16 秒）。由于原问题是间歇性的，还需要更多次运行才能确认已彻底解决。
 
 ## 未覆盖或仍有局限的部分
 
