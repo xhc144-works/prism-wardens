@@ -8,11 +8,12 @@
 
 ```
 npm run typecheck   → 通过（无错误）
-npm test            → Test Files 3 passed (3)；Tests 45 passed (45)
+npm test            → Test Files 4 passed (4)；Tests 49 passed (49)
 ```
 
 - `tests/sim.test.ts`：内容数据完整性、确定性回放、放置规则、战斗、修改器、挑战模式禁用修改器。
 - `tests/rules-ai.test.ts`：规则引擎、AI 决策与批量模拟。
+- `tests/update-signature.test.ts`：更新签名的签名与校验、篡改内容、冒充版本号、错误密钥、electron-builder 钩子。
 - `tests/roster.test.ts`：扩展单位机制——短程射手射程、窝瓜、毁灭菇弹坑、咬咬碑、机枪射手连射、忧郁菇 3×3、钢地刺多次刺破载具、玉米投手黄油定身、阳光菇成长、大蒜换行、跳跳僵尸连跳与被高坚果/磁力菇克制、海豚骑士、蹦极偷取与保护伞、商店上架。
 
 ## 端到端测试（Playwright）
@@ -113,8 +114,35 @@ CI 在 windows-latest 上构建 NSIS 安装包与便携版，执行“静默安�
 
 已知问题与处理：部分运行中安装程序启动约 2 秒后以 `0xC0000005`（访问冲突）退出，同一镜像（windows-2025）上同一安装包在其他运行中安装成功（4 次运行中失败 3 次）。安装包原先由 electron-builder 25 自带的 NSIS 3.0.4.1（2019 年）构建；已升级到 electron-builder 26.15.3 并改用 NSIS 3.12 工具集。升级后连续两次 CI（run 12、run 13）中安装、版本与注册表校验、卸载全部通过（约 15 秒）。由于原问题是间歇性的，后续运行会继续观察。
 
+## 自动更新与签名（端到端）
+
+CI 的 Windows 任务运行 `scripts/test-update-e2e.ps1`（run 15 的实际输出摘录）：
+
+```
+PrismWardens-Setup-1.0.0.exe: Valid / CN=Prism Wardens CI Test / 时间戳 True
+PrismWardens-Setup-1.0.1.exe: Valid / CN=Prism Wardens CI Test / 时间戳 True
+Prism Wardens.exe: Valid / CN=Prism Wardens CI Test / 时间戳 True
+== 安装旧版本 1.0.0 ==            安装程序退出码: 0，已安装版本: 1.0.0.0
+== 1. 更新签名被篡改：必须拒绝 ==
+  updater Found version 1.0.1 … Verifying signature …（Authenticode 通过）
+  update signature 1.0.1 签名无效（不是由发布者的密钥签名）
+  e2e update-error ERR_UPDATER_INVALID_SIGNATURE
+伪造签名的更新已被拒绝，版本仍为 1.0.0
+== 2. 正确签名：下载、校验并静默安装 ==
+  updater File has 182 changed blocks — Full: 83,919.6 KB, To download: 3,726.62 KB (4%)
+  update signature 1.0.1 ok
+  e2e update-downloaded 1.0.1
+已从 1.0.0 自动更新到 1.0.1
+自动更新端到端测试通过
+```
+
+即：临时证书签名的安装包、主程序均为 Valid 且带时间戳；伪造的 Ed25519 签名即使 Authenticode 通过也会被拒绝；正确签名的更新下载、校验后静默安装成功。run 15 中测试服务器尚不支持多段范围请求，增量下载退回了完整下载；之后给测试服务器加上了 multipart/byteranges，并让测试在退回完整下载时失败。GitHub Releases 本身支持多段范围请求。
+
+正式发布使用的密钥与证书见 [SIGNING.md](SIGNING.md)：Ed25519 更新签名已启用（需要配置仓库机密 `UPDATE_SIGNING_KEY`）；Authenticode 需要购买证书或开通 Azure Trusted Signing 后配置。
+
 ## 未覆盖或仍有局限的部分
 
 - 游戏内导入原版素材的 Electron 流程已在 Linux（Xvfb）上端到端验证，尚未在真实 Windows 桌面上手动走查。
 - 经典画面的截图检查由人工完成，没有做像素级回归测试。
-- 自动更新的下载与安装依赖已发布的 GitHub Release；本仓库目前尚未打出 `v*` 标签，因此端到端的“从旧版本更新到新版本”还没有实际执行过。
+- 自动更新已在 CI 中用本机发布源端到端验证；通过真实 GitHub Release 的更新要等打出第一个 `v*` 标签后才能验证。
+- 正式的 Authenticode 签名需要发布者自己的证书；未配置时安装包没有代码签名，Windows SmartScreen 会提示未知发布者。

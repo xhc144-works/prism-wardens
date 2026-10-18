@@ -105,6 +105,7 @@ $srv = Serve $good
 $app = RunApp 'e2e update-error|e2e update-downloaded' 300
 Get-Content $logFile | Select-String 'updater|e2e|signature' | ForEach-Object { Write-Host "  $_" }
 if (-not (Select-String -LiteralPath $logFile -Pattern 'update signature 1.0.1 ok' -Quiet)) { throw '更新签名校验没有通过' }
+if (Select-String -LiteralPath $logFile -Pattern 'fallback to full download' -Quiet) { throw '增量下载失败，退回了完整下载' }
 $v = ''
 for ($i = 0; $i -lt 300; $i++) {
   Start-Sleep 1

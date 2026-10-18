@@ -276,6 +276,7 @@ function getUpdater() {
     updater = require('electron-updater').autoUpdater;
     updater.autoDownload = false;
     updater.autoInstallOnAppQuit = true;
+    updater.disableWebInstaller = true;
     updater.logger = { info: (m) => log('updater', m), warn: (m) => log('updater warn', m), error: (m) => log('updater error', m), debug: () => {} };
     let offered = null;
     // 在 electron-updater 自身的 Authenticode 校验之后追加 Ed25519 校验；任一失败都会删除下载的文件并报错
