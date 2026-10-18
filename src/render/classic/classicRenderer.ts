@@ -17,6 +17,7 @@ import { Particles } from '../particles';
 import { bolt } from '../art/common';
 import type { BattleRenderer, HoverState, RenderSettings } from '../types';
 import { type ClassicLayout, BG_OFFSET, CELL_W, LAWN_X, cellX, cellY, groundY, makeLayout, slope } from './layout';
+import { packetCanvas } from './packets';
 import { PLANT_SKINS, PROJECTILE_SKINS, ZOMBIE_SKINS } from './skins';
 import { UnitActor, ZombieActor, isExplosiveSource, preloadForWorld } from './actors';
 
@@ -91,7 +92,6 @@ export class ClassicRenderer implements BattleRenderer {
   private base: Mat = [1, 0, 0, 1, 0, 0];
   /** 经典 HUD：当前选中的工具与鼠标位置（由战斗界面设置） */
   hudState: { selected: { kind: string; id?: string } | null; mouse: { x: number; y: number } | null } = { selected: null, mouse: null };
-  private packetCache = new Map<string, HTMLCanvasElement>();
   private sunPulse = 0;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -377,10 +377,9 @@ export class ClassicRenderer implements BattleRenderer {
       this.ready = true;
     });
     void this.pfx.preload(PARTICLE_PRELOAD);
-    void PVZ.preloadImages([this.L.bg, 'IMAGE_PLANTSHADOW', 'IMAGE_PEA_SHADOWS', 'IMAGE_TOMBSTONES', 'IMAGE_TOMBSTONE_MOUNDS', 'IMAGE_FLAGMETER', 'IMAGE_FLAGMETERPARTS', 'IMAGE_FLAGMETERLEVELPROGRESS', 'IMAGE_REANIM_APPROACHING', 'IMAGE_REANIM_FINALWAVE', 'IMAGE_FOG', 'IMAGE_ICE', 'IMAGE_CRATER', 'IMAGE_ROCKSMALL', 'IMAGE_DIRTBIG', 'IMAGE_PROJECTILEPEA', 'IMAGE_PROJECTILESNOWPEA', 'IMAGE_PROJECTILECACTUS', 'IMAGE_PROJECTILE_STAR', 'IMAGE_SEEDBANK', 'IMAGE_SEEDPACKET_LARGER', 'IMAGE_POOL', 'IMAGE_POOL_NIGHT', 'IMAGE_POOL_BASE', 'IMAGE_POOL_BASE_NIGHT', 'IMAGE_POOL_SHADING', 'IMAGE_POOL_SHADING_NIGHT', 'IMAGE_POOL_CAUSTIC_EFFECT', 'IMAGE_SHOVELBANK', 'IMAGE_SHOVEL']);
+    void PVZ.preloadImages([this.L.bg, 'IMAGE_PLANTSHADOW', 'IMAGE_PEA_SHADOWS', 'IMAGE_TOMBSTONES', 'IMAGE_TOMBSTONE_MOUNDS', 'IMAGE_FLAGMETER', 'IMAGE_FLAGMETERPARTS', 'IMAGE_FLAGMETERLEVELPROGRESS', 'IMAGE_REANIM_APPROACHING', 'IMAGE_REANIM_FINALWAVE', 'IMAGE_FOG', 'IMAGE_ICE', 'IMAGE_CRATER', 'IMAGE_ROCKSMALL', 'IMAGE_DIRTBIG', 'IMAGE_PROJECTILEPEA', 'IMAGE_PROJECTILESNOWPEA', 'IMAGE_PROJECTILECACTUS', 'IMAGE_PROJECTILE_STAR', 'IMAGE_SEEDBANK', 'IMAGE_SEEDPACKET_LARGER', 'IMAGE_SEEDS', 'IMAGE_PACKET_PLANTS', 'IMAGE_ICE_CAP', 'IMAGE_ICE_SPARKLES', 'IMAGE_POOL', 'IMAGE_POOL_NIGHT', 'IMAGE_POOL_BASE', 'IMAGE_POOL_BASE_NIGHT', 'IMAGE_POOL_SHADING', 'IMAGE_POOL_SHADING_NIGHT', 'IMAGE_POOL_CAUSTIC_EFFECT', 'IMAGE_SHOVELBANK', 'IMAGE_SHOVEL']);
     void BitmapFont.load(FONTS.sun);
     void BitmapFont.load(FONTS.cost);
-    this.packetCache.clear();
   }
 
   private syncActors(w: World, dt: number): void {
@@ -668,10 +667,58 @@ export class ClassicRenderer implements BattleRenderer {
     }
   }
 
+  /**
+   * 冰面（地形冰面与冰车留下的冰道）：原版 Board::DrawIce —— 从冰道起点向右平铺 IMAGE_ICE，
+   * 起点处画 IMAGE_ICE_CAP，纵向位于行顶 +20。屋顶斜坡上按格切片以保持纹理连续。
+   */
+  private drawIce(w: World): void {
+    const ctx = this.ctx;
+    const L = this.L;
+    const ice = this.img('IMAGE_ICE');
+    const cap = this.img('IMAGE_ICE_CAP');
+    if (!ice) return;
+    const k = L.rowH / 100;
+    const h = ice.h * k;
+    for (let r = 0; r < w.rows; r++) {
+      let c = 0;
+      while (c < w.cols) {
+        const strength = (cc: number) => {
+          const cell = w.grid[r][cc];
+          return cell.terrain === 'i' ? 1 : Math.min(1, (cell.iceTrail ?? 0) / 3);
+        };
+        if (strength(c) <= 0) {
+          c++;
+          continue;
+        }
+        const c0 = c;
+        while (c < w.cols && strength(c) > 0) c++;
+        const startX = cellX(L, c0) + 13;
+        for (let cc = c0; cc < c; cc++) {
+          const a = strength(cc);
+          ctx.globalAlpha = a;
+          const x0 = cc === c0 ? startX : cellX(L, cc);
+          const x1 = cellX(L, cc) + CELL_W;
+          const y = cellY(L, r, cc) + 20 * k;
+          // 源图按距冰道右端的位置取样，使平铺纹理连续
+          let x = x0;
+          while (x < x1) {
+            const off = (((x - startX) % ice.w) + ice.w) % ice.w;
+            const wd = Math.min(ice.w - off, x1 - x);
+            ctx.drawImage(ice.img, off, 0, wd, ice.h, x, y, wd, h);
+            x += wd;
+          }
+          if (cc === c0 && cap) ctx.drawImage(cap.img, cellX(L, c0), y, cap.w, h);
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
   private drawCellFeatures(w: World): void {
     const ctx = this.ctx;
     const L = this.L;
     const t = this.time;
+    this.drawIce(w);
     for (let r = 0; r < w.rows; r++) {
       for (let c = 0; c < w.cols; c++) {
         const cell = w.grid[r][c];
@@ -689,9 +736,6 @@ export class ClassicRenderer implements BattleRenderer {
           }
           const dirt = this.img('IMAGE_DIRTBIG');
           if (dirt) ctx.drawImage(dirt.img, ((r + c) % 4) * dirt.cw, 0, dirt.cw, dirt.ch, x + 2, y + L.rowH * 0.3, CELL_W - 4, L.rowH * 0.6);
-        } else if (code === 'i') {
-          const ice = this.img('IMAGE_ICE');
-          if (ice) ctx.drawImage(ice.img, 0, 0, ice.w, ice.h, x, y + L.rowH * 0.3, CELL_W, L.rowH * 0.65);
         } else if (code === 'b' || code === 'x') {
           const crater = this.img('IMAGE_CRATER');
           if (crater) {
@@ -717,14 +761,6 @@ export class ClassicRenderer implements BattleRenderer {
           if (dirt) ctx.drawImage(dirt.img, ((r * 3 + c) % 4) * dirt.cw, dirt.ch, dirt.cw, dirt.ch, x - 4, y + L.rowH * 0.55, CELL_W + 8, L.rowH * 0.45);
         }
         if (cell.tomb || cell.node) this.drawTomb(r, c, !!cell.node);
-        if (cell.iceTrail > 0) {
-          const ice = this.img('IMAGE_ICE');
-          if (ice) {
-            ctx.globalAlpha = Math.min(1, cell.iceTrail / 3);
-            ctx.drawImage(ice.img, x, y + L.rowH * 0.5, CELL_W, L.rowH * 0.45);
-            ctx.globalAlpha = 1;
-          }
-        }
         if (cell.crack > 0) {
           const crater = this.img('IMAGE_CRATER');
           if (crater) ctx.drawImage(crater.img, 0, 0, crater.cw, crater.ch, x - 6, y + L.rowH * 0.5, CELL_W + 12, L.rowH * 0.42);
@@ -1271,33 +1307,6 @@ export class ClassicRenderer implements BattleRenderer {
   }
 
   /** 生成种子包缩略图（50×70，与原版一致） */
-  private packetImage(defId: string): HTMLCanvasElement | null {
-    const got = this.packetCache.get(defId);
-    if (got) return got;
-    const skin = PLANT_SKINS[defId];
-    const def = skin ? PVZ.reanim(skin.reanim) : null;
-    const bg = this.img('IMAGE_SEEDPACKET_LARGER');
-    if (!skin || !def || !bg) return null;
-    if (def.images.some((id) => PVZ.hasImage(id) && !PVZ.image(id))) return null;
-    const c = document.createElement('canvas');
-    c.width = 100;
-    c.height = 140;
-    const x = c.getContext('2d')!;
-    x.drawImage(bg.img, 0, 0);
-    const r = new Reanim(def);
-    if (!r.play(skin.thumb ?? skin.idle)) r.playAll();
-    x.save();
-    x.beginPath();
-    x.rect(6, 18, 88, 92);
-    x.clip();
-    const tall = defId === 'monolith';
-    r.draw(x, scaleMat(translate(IDENTITY, tall ? 22 : 10, tall ? 16 : 24), tall ? 0.85 : 1), PVZ_IMAGES);
-    x.restore();
-    x.setTransform(1, 0, 0, 1, 0, 0);
-    this.packetCache.set(defId, c);
-    return c;
-  }
-
   private drawHud(w: World, base: Mat, dt: number): void {
     const ctx = this.ctx;
     ctx.setTransform(...base);
@@ -1326,15 +1335,23 @@ export class ClassicRenderer implements BattleRenderer {
     w.deck.forEach((c, i) => {
       const px = B.x + B.first + i * B.spacing - 4;
       const py = B.y + 8;
-      const img = this.packetImage(c.id);
       const cost = w.cardCost(c.def);
       const afford = w.lumen >= cost || !!w.cheats?.infiniteLumen;
       const ready = c.cooldown <= 0;
       const picked = sel?.kind === 'card' && sel.id === c.id;
-      if (img) ctx.drawImage(img, px, py, 50, 70);
+      // 原版：阳光不足/已拿起时整包置灰（128），冷却中从上往下覆盖深色（64）
+      const img = packetCanvas(c.id, 1, !afford || picked ? 1 : 0);
+      if (img) ctx.drawImage(img, px, py);
       else {
         ctx.fillStyle = '#c9e6a3';
         ctx.fillRect(px, py, 50, 70);
+      }
+      if (!ready) {
+        const max = w.cardCooldown(c.def);
+        const k = Math.min(1, c.cooldown / Math.max(0.01, max));
+        const dark = packetCanvas(c.id, 1, 2);
+        const hh = Math.round(68 * k) + 2;
+        if (dark) ctx.drawImage(dark, 0, 0, 50, hh, px, py, 50, hh);
       }
       if (costFont) costFont.draw(ctx, String(cost), px + 32, py + 66, '#000000', 1);
       else {
@@ -1342,18 +1359,6 @@ export class ClassicRenderer implements BattleRenderer {
         ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'right';
         ctx.fillText(String(cost), px + 40, py + 66);
-      }
-      // 冷却遮罩（从上往下退去）与阳光不足变暗
-      if (!ready) {
-        const max = w.cardCooldown(c.def);
-        const k = Math.min(1, c.cooldown / Math.max(0.01, max));
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.fillRect(px, py, 50, 70 * k);
-        ctx.fillStyle = 'rgba(0,0,0,0.25)';
-        ctx.fillRect(px, py + 70 * k, 50, 70 * (1 - k));
-      } else if (!afford || picked) {
-        ctx.fillStyle = picked ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.38)';
-        ctx.fillRect(px, py, 50, 70);
       }
       // 快捷键数字
       ctx.fillStyle = 'rgba(0,0,0,0.45)';

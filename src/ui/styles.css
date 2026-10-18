@@ -950,9 +950,26 @@ table.table tr:hover td {
   z-index: 4;
 }
 .classic-battle .battle-bottom {
-  background: linear-gradient(180deg, #6b4423, #3e2611);
-  border-top: 2px solid #24140a;
+  background: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.06) 0 2px, transparent 2px 7px, rgba(255, 220, 160, 0.04) 7px 9px, transparent 9px 15px),
+    linear-gradient(180deg, #96612e 0%, #6e4320 45%, #4a2c12 100%);
+  border-top: 3px solid #2b170a;
+  box-shadow: inset 0 2px 0 rgba(255, 200, 130, 0.35);
   color: #f6e7c1;
+  text-shadow: 0 1px 0 #2b170a;
+}
+/* 波次进度在场景内由原版进度条显示 */
+.classic-battle .battle-bottom .wavebar {
+  display: none;
+}
+.classic-battle .side-panel {
+  background: linear-gradient(rgba(30, 32, 54, 0.35), rgba(30, 32, 54, 0.35)), var(--pvz-dlg-cm) repeat;
+  border-left: 4px solid #2b170a;
+  box-shadow: inset 3px 0 0 #8d91b8;
+}
+.classic-battle .side-panel .panel {
+  background: rgba(22, 24, 44, 0.62);
+  border: 2px solid #7d81a8;
+  box-shadow: inset 0 0 0 1px #3b3e60;
 }
 .classic-battle .battle-bottom .muted {
   color: #d9c49a;

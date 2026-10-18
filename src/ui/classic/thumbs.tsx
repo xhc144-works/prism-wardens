@@ -11,6 +11,7 @@ const curMat = (ctx: CanvasRenderingContext2D): Mat => {
   const m = ctx.getTransform();
   return [m.a, m.b, m.c, m.d, m.e, m.f];
 };
+import { loadPacketAssets, packetCanvas } from '../../render/classic/packets';
 import { PLANT_SKINS, ZOMBIE_SKINS } from '../../render/classic/skins';
 import { UnitActor, ZombieActor } from '../../render/classic/actors';
 
@@ -173,61 +174,34 @@ export function ZombieThumb(props: { id: string; size?: number; w?: number; h?: 
   return <Snap kind="zombie" id={props.id} w={props.w ?? props.size ?? 80} h={props.h ?? props.size ?? 80} />;
 }
 
-/** 原版种子包（底图 + 植物 + 价格） */
+/** 原版种子包（底图 + 植物 + 价格），scale 相对 100×140 高清底板（0.5 = 卡槽原尺寸 50×70） */
 export function SeedPacket(props: { id: string; cost: number; scale?: number; dim?: boolean; selected?: boolean }) {
   const s = props.scale ?? 0.5;
-  const w = 100 * s;
-  const h = 140 * s;
+  const k = s * 2;
+  const w = Math.ceil(50 * k);
+  const h = Math.ceil(70 * k);
   const ready = useAssets(async () => {
-    await Promise.all([PVZ.loadImage('IMAGE_SEEDPACKET_LARGER'), loadReanimFor('plant', props.id), BitmapFont.load(FONTS.cost)]);
+    await Promise.all([loadPacketAssets(props.id), BitmapFont.load(FONTS.cost)]);
   }, [props.id]);
   const ref = useCanvas(
     w,
     h,
     (ctx) => {
       if (!ready) return;
-      const bg = PVZ.image('IMAGE_SEEDPACKET_LARGER');
-      ctx.save();
-      ctx.scale(s, s);
-      if (bg) ctx.drawImage(bg.img, 0, 0);
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(6, 18, 88, 92);
-      ctx.clip();
-      const m = ctx.getTransform();
-      drawPlantAt(ctx, props.id, m.a, m.e, m.f, props.id === 'monolith');
-      ctx.restore();
-      ctx.setTransform(m);
+      const shade = props.selected ? 2 : props.dim ? 1 : 0;
+      const c = packetCanvas(props.id, k, shade);
+      if (c) ctx.drawImage(c, 0, 0, w, h);
       const f = BitmapFont.get(FONTS.cost);
-      if (f) f.draw(ctx, String(props.cost), 64, 132, '#000000', 1, 2);
-      ctx.restore();
-      if (props.dim || props.selected) {
-        ctx.fillStyle = props.selected ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.35)';
-        ctx.fillRect(0, 0, w, h);
+      if (f) {
+        ctx.save();
+        ctx.scale(k, k);
+        f.draw(ctx, String(props.cost), 32, 66, '#000000', 1);
+        ctx.restore();
       }
     },
-    [ready, props.id, props.cost, s, props.dim, props.selected],
+    [ready, props.id, props.cost, k, props.dim, props.selected],
   );
   return <canvas ref={ref} style={{ width: `${w}px`, height: `${h}px` }} />;
-}
-
-/** 在当前缩放下把植物画进种子包（坐标为种子包 100×140 空间） */
-function drawPlantAt(ctx: CanvasRenderingContext2D, id: string, k: number, ex: number, ey: number, tall: boolean) {
-  const skin = PLANT_SKINS[id];
-  const def = skin ? PVZ.reanim(skin.reanim) : null;
-  if (!skin || !def) return;
-  const sc = tall ? 0.85 : 1;
-  const base: [number, number, number, number, number, number] = [k * sc, 0, 0, k * sc, ex + (tall ? 22 : 10) * k, ey + (tall ? 16 : 24) * k];
-  if (skin.thumb) {
-    const r = new Reanim(def);
-    if (!r.play(skin.thumb)) r.playAll();
-    r.draw(ctx, base, PVZ_IMAGES);
-  } else {
-    const a = new UnitActor(0, id, def, skin);
-    a.body.t = 0;
-    for (const h of a.heads) h.r.t = 0;
-    a.body.draw(ctx, base, PVZ_IMAGES);
-  }
 }
 
 /** 位图字体文本（原版字体），按文字宽度自动设定画布大小 */
