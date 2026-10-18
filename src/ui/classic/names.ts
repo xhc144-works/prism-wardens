@@ -55,9 +55,19 @@ export function applyClassicNames(): void {
     for (const [a, b] of pairs) if (r.includes(a)) r = r.split(a).join(b);
     return r;
   };
+  // 背景故事：优先使用原版图鉴中的风味文字；否则只替换通用术语（避免把名称替换进其他词语里）
+  const termsOnly = (t: string) => {
+    let r = t;
+    for (const [a, b] of TERMS) if (r.includes(a)) r = r.split(a).join(b);
+    return r;
+  };
   for (const u of CONTENT.allUnits()) {
     u.desc = tr(u.desc)!;
-    if (u.lore) u.lore = tr(u.lore);
+    const k = PLANT_SKINS[u.id]?.nameKey;
+    const raw = k ? PVZ.str(`${k}_DESCRIPTION`) : '';
+    const flavor = raw.includes('{FLAVOR}') ? raw.slice(raw.indexOf('{FLAVOR}') + 8).replace(/\{[^}]*\}/g, '').trim() : '';
+    if (flavor) u.lore = flavor;
+    else if (u.lore) u.lore = termsOnly(u.lore);
   }
   for (const e of CONTENT.enemies.values()) e.desc = tr(e.desc)!;
   for (const l of LEVELS) {
