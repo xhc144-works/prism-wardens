@@ -74,6 +74,9 @@ jobs:
         run: node scripts/check-public-build.mjs
       - name: 打包 NSIS 安装包与便携版
         run: npx electron-builder --win --x64 --publish never
+      - name: 校验安装包内的 app.asar 不含原版素材
+        shell: bash
+        run: node scripts/check-public-build.mjs release/win-unpacked/resources/app.asar
       - name: 静默安装 → 校验 → 静默卸载
         shell: pwsh
         run: |
