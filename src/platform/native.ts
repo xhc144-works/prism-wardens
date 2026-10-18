@@ -26,6 +26,7 @@ export interface NativeBridge {
     check(): Promise<{ status: string; version?: string; message?: string }>;
     download(): Promise<void>;
     install(): Promise<void>;
+    info?(): Promise<{ enabled: boolean; signature: boolean; publisherName: string[] | null }>;
     onStatus(cb: (s: { status: string; version?: string; percent?: number; message?: string }) => void): void;
   };
   file: {

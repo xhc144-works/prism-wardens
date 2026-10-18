@@ -25,7 +25,8 @@
     "release": "npm run build && electron-builder --win --x64 --publish always",
     "assets:import": "tsx tools/import/cli.ts",
     "predev": "node scripts/vendor-openmpt.mjs",
-    "prebuild": "node scripts/vendor-openmpt.mjs && node scripts/build-importer.mjs"
+    "prebuild": "node scripts/vendor-openmpt.mjs && node scripts/build-importer.mjs",
+    "update-key": "node scripts/update-signature.mjs keygen"
   },
   "dependencies": {
     "7zip-bin": "5.2.0",
@@ -87,7 +88,10 @@
       "icon": "build/icon.png",
       "artifactName": "PrismWardens-${version}-${arch}.${ext}",
       "legalTrademarks": "Prism Wardens",
-      "requestedExecutionLevel": "asInvoker"
+      "requestedExecutionLevel": "asInvoker",
+      "signtoolOptions": {
+        "rfc3161TimeStampServer": "http://timestamp.digicert.com"
+      }
     },
     "nsis": {
       "oneClick": false,
@@ -120,6 +124,7 @@
     "asarUnpack": [
       "node_modules/7zip-bin/win/x64/**",
       "node_modules/7zip-bin/linux/x64/**"
-    ]
+    ],
+    "afterAllArtifactBuild": "scripts/electron-builder-after-all.cjs"
   }
 }

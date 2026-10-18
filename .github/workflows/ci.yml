@@ -118,3 +118,6 @@ jobs:
             release/*.zip
             release/*.blockmap
             release/latest.yml
+      - name: 自动更新端到端测试（临时证书 Authenticode 签名 + Ed25519 更新签名）
+        shell: pwsh
+        run: ./scripts/test-update-e2e.ps1

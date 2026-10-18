@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('prismNative', {
     check: () => inv('update:check'),
     download: () => inv('update:download'),
     install: () => inv('update:install'),
+    info: () => inv('update:info'),
     onStatus: (cb) => ipcRenderer.on('update:status', (_e, s) => cb(s)),
   },
   file: {

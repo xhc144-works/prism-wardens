@@ -223,6 +223,52 @@ const researchBuild = (() => {
     return false;
   }
 })();
+const updateSig = require('./update-signature.cjs');
+const updatePublicKey = updateSig.loadPublicKey();
+
+// app-update.yml 由 electron-builder 写入：发布源，以及（使用代码签名证书时）发布者名称
+function readUpdateConfig() {
+  try {
+    const t = fs.readFileSync(path.join(process.resourcesPath, 'app-update.yml'), 'utf8');
+    const get = (k) => (t.match(new RegExp(`^${k}:\\s*(.+)$`, 'm')) || [])[1];
+    const pub = t.match(/^publisherName:\s*\n((?:\s+-\s*.+\n?)+)/m);
+    return {
+      provider: get('provider') || 'github',
+      url: get('url') || null,
+      owner: get('owner') || 'xhc144',
+      repo: get('repo') || 'zwdzjs',
+      publisherName: pub ? pub[1].split('\n').map((l) => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean) : null,
+    };
+  } catch {
+    return { provider: 'github', url: null, owner: 'xhc144', repo: 'zwdzjs', publisherName: null };
+  }
+}
+
+// 下载完成后、标记为可安装之前，校验发布者的 Ed25519 签名（<安装包>.sig 随 Release 发布）
+async function verifyUpdateSignature(file, info) {
+  if (!updatePublicKey) return null;
+  if (!info) return '缺少更新信息，无法校验签名';
+  const fileName = path.basename(String((info.files && info.files[0] && info.files[0].url) || info.path || ''));
+  const cfg = readUpdateConfig();
+  const sigName = `${encodeURIComponent(fileName)}.sig`;
+  const url =
+    cfg.provider === 'generic' && cfg.url
+      ? `${cfg.url.replace(/^['"]|['"]$/g, '').replace(/\/$/, '')}/${sigName}`
+      : `https://github.com/${cfg.owner}/${cfg.repo}/releases/download/v${info.version}/${sigName}`;
+  sendUpdate({ status: 'verifying', version: info.version });
+  let doc;
+  try {
+    const r = await net.fetch(url);
+    if (!r.ok) return `无法获取更新签名（HTTP ${r.status}）`;
+    doc = await r.json();
+  } catch (e) {
+    return `无法获取更新签名：${(e && e.message) || e}`;
+  }
+  const err = await updateSig.verifyFile(file, { version: info.version, fileName }, doc, updatePublicKey);
+  log('update signature', info.version, err || 'ok');
+  return err;
+}
+
 function getUpdater() {
   if (!app.isPackaged || researchBuild) return null;
   if (updater) return updater;
@@ -230,8 +276,20 @@ function getUpdater() {
     updater = require('electron-updater').autoUpdater;
     updater.autoDownload = false;
     updater.autoInstallOnAppQuit = true;
+    updater.logger = { info: (m) => log('updater', m), warn: (m) => log('updater warn', m), error: (m) => log('updater error', m), debug: () => {} };
+    let offered = null;
+    // 在 electron-updater 自身的 Authenticode 校验之后追加 Ed25519 校验；任一失败都会删除下载的文件并报错
+    const authenticode = updater.verifySignature;
+    if (typeof authenticode === 'function') {
+      updater.verifySignature = async (file) => (await authenticode.call(updater, file)) || verifyUpdateSignature(file, offered);
+    } else if (updatePublicKey) {
+      log('updater: verifySignature hook not found, update signature check unavailable');
+    }
     updater.on('checking-for-update', () => sendUpdate({ status: 'checking' }));
-    updater.on('update-available', (i) => sendUpdate({ status: 'available', version: i.version }));
+    updater.on('update-available', (i) => {
+      offered = i;
+      sendUpdate({ status: 'available', version: i.version });
+    });
     updater.on('update-not-available', () => sendUpdate({ status: 'not-available' }));
     updater.on('download-progress', (p) => sendUpdate({ status: 'downloading', percent: p.percent }));
     updater.on('update-downloaded', (i) => sendUpdate({ status: 'downloaded', version: i.version }));
@@ -260,6 +318,11 @@ ipcMain.handle('update:download', async () => {
   const u = getUpdater();
   if (u) await u.downloadUpdate();
 });
+ipcMain.handle('update:info', () => ({
+  enabled: !!getUpdater(),
+  signature: !!updatePublicKey,
+  publisherName: app.isPackaged ? readUpdateConfig().publisherName : null,
+}));
 ipcMain.handle('update:install', () => {
   const u = getUpdater();
   if (u) u.quitAndInstall(false, true);
@@ -336,6 +399,21 @@ app.whenReady().then(() => {
     return net.fetch(pathToFileURL(file).toString());
   });
   createWindow();
+  // 自动更新端到端测试（CI）：检查 → 下载 → 校验 → 静默安装，结果写入日志
+  if (process.env.PRISM_UPDATE_E2E === '1') {
+    const u = getUpdater();
+    if (u) {
+      u.on('update-downloaded', (i) => {
+        log('e2e update-downloaded', i.version);
+        setTimeout(() => u.quitAndInstall(true, false), 500);
+      });
+      u.on('error', (e) => log('e2e update-error', e && (e.code || e.message)));
+      u.checkForUpdates()
+        .then((r) => (r && r.updateInfo.version !== app.getVersion() ? u.downloadUpdate() : log('e2e no-update')))
+        .catch((e) => log('e2e update-error', e && (e.code || e.message)));
+    }
+    return;
+  }
   // 启动后静默检查更新（只通知，不自动下载）
   setTimeout(() => {
     const u = getUpdater();

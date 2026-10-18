@@ -18,8 +18,10 @@ function SettingsScreen() {
   const set = (fn: (s: typeof data.settings) => void) => store.update(['settings'], (d) => fn(d.settings));
   const [upd, setUpd] = useState<{ status: string; version?: string; percent?: number; message?: string } | null>(null);
   const [path, setPath] = useState('');
+  const [updInfo, setUpdInfo] = useState<{ signature: boolean; publisherName: string[] | null } | null>(null);
   useEffect(() => {
     native?.update.onStatus((st) => setUpd(st));
+    void native?.update.info?.().then(setUpdInfo);
     void native?.dataPath().then(setPath);
   }, []);
   return (
@@ -102,10 +104,14 @@ function SettingsScreen() {
               </div>
               {upd && (
                 <div class="muted">
-                  {({ checking: '正在检查…', available: `发现新版本 ${upd.version}`, 'not-available': '已是最新版本', downloading: `下载中 ${Math.round(upd.percent ?? 0)}%（增量下载）`, downloaded: '更新已下载，重启即可安装', error: `更新失败：${upd.message}`, disabled: '开发模式下未启用自动更新' } as Record<string, string>)[upd.status] ?? upd.status}
+                  {({ checking: '正在检查…', available: `发现新版本 ${upd.version}`, 'not-available': '已是最新版本', downloading: `下载中 ${Math.round(upd.percent ?? 0)}%（增量下载）`, verifying: `正在校验 ${upd.version} 的发布者签名…`, downloaded: '更新已下载并通过签名校验，重启即可安装', error: `更新失败：${upd.message}`, disabled: '开发模式下未启用自动更新' } as Record<string, string>)[upd.status] ?? upd.status}
                 </div>
               )}
-              <div class="dim" style={{ fontSize: 12 }}>自动更新通过 GitHub Releases 发布，支持基于 blockmap 的增量下载。</div>
+              <div class="dim" style={{ fontSize: 12 }}>
+                自动更新通过 GitHub Releases 发布，支持基于 blockmap 的增量下载。
+                {updInfo?.signature && ' 每个更新包在安装前都会校验发布者的 Ed25519 签名，签名不符的更新会被拒绝。'}
+                {updInfo?.publisherName?.length ? ` 安装包已由「${updInfo.publisherName.join('、')}」进行 Windows 代码签名，更新时同时校验。` : ''}
+              </div>
             </div>
           ) : (
             <div class="dim" style={{ fontSize: 12, marginTop: 8 }}>浏览器版本无需更新；Windows 桌面版内置自动更新。</div>

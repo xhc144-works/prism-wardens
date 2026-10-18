@@ -45,13 +45,14 @@ npm run electron            # 以桌面应用运行（需先 npm run build）
 | `npm run sim -- --level 1-1,2-1 --strategy balanced,defense --runs 5 --json out.json` | 无渲染 AI 批量模拟 |
 | `npm run build` | 构建 Web 版（公开构建，自动剔除原版素材） |
 | `npm run dist:win` | 打包 Windows NSIS 安装包与便携版 |
+| `npm run update-key -- <私钥路径>` | 生成新的更新签名密钥对（见 docs/SIGNING.md） |
 | `npm run dist:research` | 本地研究构建：把已导入的原版素材一起打包，仅限本人本机使用 |
 
 开发时可用 `?quick=关卡ID&ai=1&deck=卡牌1,卡牌2&skin=classic|original` 直接进入战斗。
 
 ## 发布与自动更新
 
-推送 `v*` 标签会触发 Release 工作流：校验版本号、运行测试、构建、检查公开构建不含原版素材，然后用 electron-builder 发布到 GitHub Releases（含 `latest.yml` 与 blockmap）。桌面版通过 electron-updater 检查更新、增量下载，并在退出时安装。
+推送 `v*` 标签会触发 Release 工作流：校验版本号、运行测试、构建、检查公开构建不含原版素材，然后用 electron-builder 发布到 GitHub Releases（含 `latest.yml`、blockmap 与更新签名 `.sig`）。桌面版通过 electron-updater 检查更新、增量下载，校验发布者的 Ed25519 签名（以及配置证书后的 Windows Authenticode 签名）后才会安装。发布前需要在仓库机密中配置签名私钥，见 [docs/SIGNING.md](docs/SIGNING.md)。
 
 CI（`.github/workflows/ci.yml`）在每次推送时运行类型检查、单元测试、AI 模拟冒烟测试、端到端测试，并在 Windows 上构建安装包、静默安装、校验注册表与文件、再静默卸载。
 
@@ -76,6 +77,7 @@ docs/            文档
 - [docs/ASSETS.md](docs/ASSETS.md)：原版素材、授权与公开/研究构建的区分
 - [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md)：第三方项目调研与使用情况
 - [docs/FORMATS.md](docs/FORMATS.md)：原版资源格式与还原要点
+- [docs/SIGNING.md](docs/SIGNING.md)：自动更新、更新签名与代码签名
 - [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md)：测试结果记录
 
 ## 声明
