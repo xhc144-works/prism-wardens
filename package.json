@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:import": "node scripts/test-electron-import.mjs",
     "sim": "tsx cli/sim.ts",
     "electron": "electron .",
     "dist:win": "npm run build && electron-builder --win --x64 --publish never",

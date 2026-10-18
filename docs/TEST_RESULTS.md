@@ -42,6 +42,19 @@ npx playwright test → 8 passed (42.4s)
 - 生成 2386 张图片、146 个 reanim 动画、112 个粒子效果、167 个音效、20 套位图字体、13 首曲目（分层 OGG 音轨）以及原版 MO3 音乐（供 WebAssembly 实时播放）。
 - 经典画面下的战斗、选卡、图鉴、关卡选择、主菜单、载入界面、暂停与结算对话框均已截图检查（截图含原版美术，不提交到仓库）。
 
+桌面版游戏内导入（Electron 工具进程 + 内置 7za）：
+
+\`\`\`
+npm run build && xvfb-run -a npm run test:import -- "Plants vs. Zombies GOTY_CHS.exe"
+before {"imported":false,...}   classic before false
+import result {"type":"done","stats":{"files":2916,"bytes":59616909},"reanims":146,"images":2386,"sounds":167,...,"music":true} in 9 s
+after {"imported":true,...}
+classic after reload true   pvz manifest via app:// true
+errors none
+\`\`\`
+
+即：全新用户目录 → 导入 9 秒完成 → 素材写入用户目录并经 \`app://\` 协议提供 → 重新载入后自动切换到经典画面（原版主菜单）。该测试在 Linux（Xvfb）上运行；Windows 上同一流程使用 7zip-bin 的 win/x64 版本。
+
 ## AI 批量模拟（全部 30 关）
 
 ```
@@ -102,6 +115,6 @@ CI 在 windows-latest 上构建 NSIS 安装包与便携版，执行“静默安�
 
 ## 未覆盖或仍有局限的部分
 
-- 游戏内导入原版素材的 Electron 流程（工具进程 + 7za 解压）在 Linux 上验证过导入逻辑本身，尚未在真实 Windows 桌面上手动走查。
+- 游戏内导入原版素材的 Electron 流程已在 Linux（Xvfb）上端到端验证，尚未在真实 Windows 桌面上手动走查。
 - 经典画面的截图检查由人工完成，没有做像素级回归测试。
 - 自动更新的下载与安装依赖已发布的 GitHub Release；本仓库目前尚未打出 `v*` 标签，因此端到端的“从旧版本更新到新版本”还没有实际执行过。
