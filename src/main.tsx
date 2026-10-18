@@ -12,14 +12,11 @@ import { installClassicIcons } from './ui/classic/icons';
 async function boot(): Promise<void> {
   await Promise.all([store.load(), PVZ.init()]);
   audio.setVolumes(store.settings.volume);
+  // 开发/测试快捷入口：?skin=classic|original 临时切换画面，?quick=关卡ID[&ai=1] 直接进入战斗
+  const q = new URLSearchParams(location.search);
+  if (q.get('skin')) store.settings.skin = q.get('skin') as 'classic' | 'original';
   audio.preferClassic = store.settings.skin !== 'original';
   void applyClassicTheme();
-  // 开发/测试快捷入口：?quick=关卡ID[&ai=1] 直接进入战斗
-  const q = new URLSearchParams(location.search);
-  if (q.get('skin')) {
-    store.settings.skin = q.get('skin') as 'classic' | 'original';
-    audio.preferClassic = store.settings.skin !== 'original';
-  }
   if (PVZ.available && store.settings.skin !== 'original') applyClassicNames();
   const quick = q.get('quick');
   if (quick) {
