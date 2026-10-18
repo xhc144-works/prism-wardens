@@ -136,7 +136,7 @@ Prism Wardens.exe: Valid / CN=Prism Wardens CI Test / 时间戳 True
 自动更新端到端测试通过
 ```
 
-即：临时证书签名的安装包、主程序均为 Valid 且带时间戳；伪造的 Ed25519 签名即使 Authenticode 通过也会被拒绝；正确签名的更新下载、校验后静默安装成功。run 15 中测试服务器尚不支持多段范围请求，增量下载退回了完整下载；之后给测试服务器加上了 multipart/byteranges，并让测试在退回完整下载时失败。GitHub Releases 本身支持多段范围请求。
+即：临时证书签名的安装包、主程序均为 Valid 且带时间戳；伪造的 Ed25519 签名即使 Authenticode 通过也会被拒绝；正确签名的更新下载、校验后静默安装成功。run 15 中测试服务器尚不支持多段范围请求，增量下载退回了完整下载；给测试服务器加上 multipart/byteranges 并让测试在退回完整下载时失败后，run 16 中增量下载成功：17 段范围请求，只下载 3,613.54 KB / 83,919.64 KB（4%），随后签名校验通过并静默安装。
 
 正式发布使用的密钥与证书见 [SIGNING.md](SIGNING.md)：Ed25519 更新签名已启用（需要配置仓库机密 `UPDATE_SIGNING_KEY`）；Authenticode 需要购买证书或开通 Azure Trusted Signing 后配置。
 
