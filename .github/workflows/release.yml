@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     name: 构建并发布到 GitHub Releases
@@ -36,17 +40,18 @@ jobs:
       - name: 检查签名配置
         shell: pwsh
         run: |
-          # 已安装的版本只接受带 Ed25519 签名的更新，没有私钥就不能发布
-          if (-not $env:UPDATE_SIGNING_KEY) { throw '缺少仓库机密 UPDATE_SIGNING_KEY（更新签名私钥），见 docs/SIGNING.md' }
+          if ($env:UPDATE_SIGNING_KEY) { Write-Host '将生成并验证 Ed25519 更新签名' }
+          else { Write-Host '::warning::缺少 UPDATE_SIGNING_KEY：发布手动安装包，不发布 latest.yml，保留客户端签名校验' }
           if ($env:CSC_LINK) { Write-Host 'Authenticode：使用 WIN_CSC_LINK 证书签名' }
           elseif ($env:AZURE_SIGN_ENDPOINT) { Write-Host 'Authenticode：使用 Azure Trusted Signing 签名' }
           else { Write-Host '::warning::未配置代码签名证书，安装包没有 Authenticode 签名（Windows SmartScreen 会提示未知发布者）；更新仍受 Ed25519 签名保护' }
       - name: 校验版本号与标签一致
-        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: |
           $pkg = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          if ("v$pkg" -ne "${{ github.ref_name }}") { throw "package.json 版本 $pkg 与标签 ${{ github.ref_name }} 不一致" }
+          if ($env:GITHUB_REF_TYPE -ne 'tag' -or $env:GITHUB_REF_NAME -ne "v$pkg") { throw '只能从与 package.json 版本一致的 v* 标签发布，手动运行也请选择标签' }
+      - name: 类型检查
+        run: npm run typecheck
       - name: 测试
         run: npm test
       - name: 构建
@@ -62,8 +67,10 @@ jobs:
           if ($LASTEXITCODE) { throw '公开构建检查失败' }
           $setup = Get-ChildItem release -Filter 'PrismWardens-Setup-*.exe' | Select-Object -First 1
           # 私钥必须与仓库内置的公钥配对，否则已安装的版本会拒绝这次更新
-          node scripts/update-signature.mjs verify $setup.FullName
-          if ($LASTEXITCODE) { throw '更新签名与 electron/update-public-key.pem 不匹配' }
+          if ($env:UPDATE_SIGNING_KEY) {
+            node scripts/update-signature.mjs verify $setup.FullName
+            if ($LASTEXITCODE) { throw '更新签名与 electron/update-public-key.pem 不匹配' }
+          }
           if ($env:CSC_LINK -or $env:AZURE_SIGN_ENDPOINT) {
             foreach ($f in @($setup.FullName, 'release/win-unpacked/Prism Wardens.exe')) {
               $s = Get-AuthenticodeSignature -LiteralPath $f
@@ -71,8 +78,33 @@ jobs:
               if ($s.Status -ne 'Valid') { throw "Authenticode 签名无效：$f" }
             }
           }
-      - name: 打包并发布（含 latest.yml、blockmap 与 .sig，供自动增量更新）
+      - name: 验证同一份安装包的安装、启动、版本与卸载
+        shell: pwsh
+        run: ./scripts/test-windows-package.ps1
+      - name: 准备发布资产与校验和
+        run: node scripts/prepare-release.mjs
+      - name: 保留已验证的安装包
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrismWardens-release
+          path: release/publish/*
+          if-no-files-found: error
+      - name: 上传到草稿 Release 后发布（不重新构建）
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./scripts/release-build.ps1 always
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $repo = $env:GITHUB_REPOSITORY
+          $existing = gh release view $tag --repo $repo --json isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if (-not ($existing | ConvertFrom-Json).isDraft) { throw "版本 $tag 已发布，拒绝覆盖" }
+          } else {
+            gh release create $tag --repo $repo --verify-tag --draft --title "棱镜守卫 Prism Wardens $tag" --notes-file release/release-notes.md
+            if ($LASTEXITCODE) { throw '创建草稿 Release 失败' }
+          }
+          $assets = Get-ChildItem release/publish -File | ForEach-Object { $_.FullName }
+          gh release upload $tag @assets --repo $repo --clobber
+          if ($LASTEXITCODE) { throw '上传 Release 资产失败' }
+          gh release edit $tag --repo $repo --notes-file release/release-notes.md --draft=false --latest
+          if ($LASTEXITCODE) { throw '发布 Release 失败' }

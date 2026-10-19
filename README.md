@@ -22,7 +22,9 @@
 
 ## 下载与安装
 
-在 [Releases](https://github.com/xhc144/zwdzjs/releases) 下载 `PrismWardens-Setup-<版本>.exe`（安装版，含卸载程序与自动更新）或 `PrismWardens-<版本>-x64.zip`（便携版）。安装后在 **设置 → 美术风格与原版资源** 中导入原版即可切换到经典画面。
+在 [Releases](https://github.com/xhc144/zwdzjs/releases) 下载 `PrismWardens-Setup-<版本>.exe`（Windows 10/11 64 位安装版，含卸载程序）或 `PrismWardens-<版本>-x64.zip`（便携版）。安装版运行安装向导；便携版解压全部文件后运行 `Prism Wardens.exe`。GitHub 自动提供的 Source code ZIP/TAR 是源码，不是安装包。可用 `SHA256SUMS.txt` 核对下载完整性。
+
+安装版只接受有效签名的自动更新；是否已配置签名更新见各版本发布说明。没有签名更新清单时，请从发布页手动下载安装。便携版请手动下载新版本并解压。未配置 Windows 代码签名证书的版本可能提示“未知发布者”。安装后在 **设置 → 美术风格与原版资源** 中导入自己合法持有的副本即可切换到经典画面。
 
 ## 从源码运行
 
@@ -31,7 +33,7 @@
 ```bash
 npm ci
 npm run dev                 # 开发服务器 http://localhost:5173
-npm run assets:import       # （可选）从原版安装包或游戏目录导入经典画面素材到 public/pvz
+npm run assets:import -- "D:\Games\PvZ" # （可选）从自己的游戏目录导入经典画面素材
 npm run electron            # 以桌面应用运行（需先 npm run build）
 ```
 
@@ -52,9 +54,13 @@ npm run electron            # 以桌面应用运行（需先 npm run build）
 
 ## 发布与自动更新
 
-推送 `v*` 标签会触发 Release 工作流：校验版本号、运行测试、构建、检查公开构建不含原版素材，然后用 electron-builder 发布到 GitHub Releases（含 `latest.yml`、blockmap 与更新签名 `.sig`）。桌面版通过 electron-updater 检查更新、增量下载，校验发布者的 Ed25519 签名（以及配置证书后的 Windows Authenticode 签名）后才会安装。发布前需要在仓库机密中配置签名私钥，见 [docs/SIGNING.md](docs/SIGNING.md)。
+推送与 `package.json` 版本一致的 `v*` 标签会触发 Release 工作流：运行测试、构建一次、检查不含原版素材、验证同一份安装包的安装/启动/卸载，再发布到 GitHub Releases。配置了配对的 `UPDATE_SIGNING_KEY` 时，额外校验并发布 `latest.yml`、blockmap 与 `.sig`；未配置时仍发布手动安装包与校验和，不发布更新清单。签名不匹配会阻止发布，不会退回不安全的更新方式。
+
+桌面版通过 electron-updater 检查更新、增量下载，校验发布者的 Ed25519 签名（以及配置证书后的 Windows Authenticode 签名）后才会安装，复用缓存也重新校验。签名配置见 [docs/SIGNING.md](docs/SIGNING.md)。
 
 CI（`.github/workflows/ci.yml`）在每次推送时运行类型检查、单元测试、AI 模拟冒烟测试、端到端测试，并在 Windows 上构建安装包、静默安装、校验注册表与文件、再静默卸载。
+
+完整签名升级的测试夹具需要在临时 runner 创建测试密钥和证书，仅手动运行 CI 并明确选择 `run_signed_update_fixture` 时执行；日常构建不创建这些测试凭据。此前通过记录见 [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md)，不代表已验证真实 GitHub 跨版本升级。
 
 ## 目录结构
 

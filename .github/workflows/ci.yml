@@ -5,6 +5,11 @@ on:
     branches: ['**']
   pull_request:
   workflow_dispatch:
+    inputs:
+      run_signed_update_fixture:
+        description: '在临时 runner 创建测试密钥与受信任测试证书，验证完整签名升级'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -119,5 +124,6 @@ jobs:
             release/*.blockmap
             release/latest.yml
       - name: 自动更新端到端测试（临时证书 Authenticode 签名 + Ed25519 更新签名）
+        if: github.event_name == 'workflow_dispatch' && inputs.run_signed_update_fixture
         shell: pwsh
         run: ./scripts/test-update-e2e.ps1

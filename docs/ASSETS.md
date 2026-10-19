@@ -8,7 +8,7 @@
 | 开源第三方组件 | Preact、Electron、electron-updater、7zip-bin、chiptune3（含 libopenmpt WebAssembly）等，见 [THIRD_PARTY.md](THIRD_PARTY.md) | 依赖清单在 git 中，代码由 npm 安装 | 是（遵守各自许可证） |
 | 原版《植物大战僵尸》素材 | 贴图、reanim 动画、粒子、字体、音效、MO3 音乐、LawnStrings 文本 | **否** | **否** |
 
-原版素材的版权属于 PopCap / Electronic Arts。本项目从不分发这些素材：它们只能在玩家自己的电脑上，从玩家自己合法持有的游戏副本中导入。
+原版素材的版权属于 PopCap / Electronic Arts。公开构建不分发这些素材：它们只能在玩家自己的电脑上，从玩家自己合法持有的游戏副本中导入。既有仓库历史中的原版安装程序另见下文。
 
 ## 玩家如何启用经典画面
 
@@ -24,7 +24,7 @@
 ### 方式二：命令行导入（开发 / Web 版）
 
 ```bash
-npm run assets:import                       # 默认使用仓库根目录下的原版安装包
+npm run assets:import -- "D:\Downloads\自己的安装包.exe"
 npm run assets:import -- "D:\Games\PvZ"     # 游戏目录（含 main.pak）
 npm run assets:import -- setup.exe --out public/pvz
 ```
@@ -45,7 +45,7 @@ npm run assets:import -- setup.exe --out public/pvz
 
 ## 关于仓库中的安装包
 
-仓库根目录的 `Plants vs. Zombies GOTY_CHS.exe` 是仓库所有者提交的原版安装包，用于本地研究与自动化测试中的导入流程。它不会被打包进任何构建产物。如果将来把仓库设为公开，建议先把它从 git 历史中移除（例如使用 `git filter-repo`），改为让每位开发者使用自己的副本。
+初始提交 `9d460b5` 含 `Plants vs. Zombies GOTY_CHS.exe`（75,460,638 字节），是第三方原版游戏安装程序，仓库内未发现再分发授权证据。仓库当前已经公开；本次发布从新版本文件树中移除该文件，避免安装包、便携包和标签源码压缩包再次附带它，未执行这个程序。按要求保留全部 Git 历史与原有分支，因此旧提交/原功能分支仍能找到此文件；本次没有改变仓库可见性，也没有重写历史。
 
 ## 截图与宣传材料
 

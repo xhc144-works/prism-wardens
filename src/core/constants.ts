@@ -1,3 +1,5 @@
+import { version as packageVersion } from '../../package.json';
+
 /** 固定逻辑帧率。所有模拟以固定步长推进，保证确定性与可回放。 */
 export const TICK_RATE = 30;
 export const DT = 1 / TICK_RATE;
@@ -5,7 +7,7 @@ export const DT = 1 / TICK_RATE;
 /** 秒 -> tick */
 export const sec = (s: number): number => Math.round(s * TICK_RATE);
 
-export const GAME_VERSION = '1.0.0';
+export const GAME_VERSION = packageVersion;
 
 /** 星级强化倍率（战斗内强化） */
 export const RANK_MUL = [1, 1, 1.35, 1.75];

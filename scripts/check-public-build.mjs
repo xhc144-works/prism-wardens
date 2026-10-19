@@ -31,7 +31,8 @@ if (asars.length) {
     }
     for (const f of asar.listPackage(a)) {
       const rel = f.replace(/^[\\/]/, '');
-      if (!rel.startsWith('dist')) continue;
+      if (/Plants.*Zombies.*\.exe$/i.test(rel) || /\.(pak|reanim|mo3)$/i.test(rel)) problems.push(`${a}:${rel}`);
+      if (!rel.startsWith('dist/')) continue;
       if (BANNED_DIR.test(rel.slice(5)) || BANNED_FILE.test(rel)) problems.push(`${a}:${rel}`);
     }
   }

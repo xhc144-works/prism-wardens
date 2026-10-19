@@ -212,6 +212,7 @@ ipcMain.handle('app:reload', () => win && win.webContents.reload());
 /* ---------------------------- 自动更新 ---------------------------- */
 
 let updater = null;
+let updateVerified = false;
 function sendUpdate(s) {
   if (win && !win.isDestroyed()) win.webContents.send('update:status', s);
 }
@@ -246,9 +247,10 @@ function readUpdateConfig() {
 
 // 下载完成后、标记为可安装之前，校验发布者的 Ed25519 签名（<安装包>.sig 随 Release 发布）
 async function verifyUpdateSignature(file, info) {
-  if (!updatePublicKey) return null;
+  if (!updatePublicKey) return '缺少发布者公钥，拒绝安装更新';
   if (!info) return '缺少更新信息，无法校验签名';
-  const fileName = path.basename(String((info.files && info.files[0] && info.files[0].url) || info.path || ''));
+  const installer = info.files && info.files.find((f) => /\.exe$/i.test(String(f.url)));
+  const fileName = path.basename(String((installer && installer.url) || info.path || ''));
   const cfg = readUpdateConfig();
   const sigName = `${encodeURIComponent(fileName)}.sig`;
   const url =
@@ -270,25 +272,51 @@ async function verifyUpdateSignature(file, info) {
 }
 
 function getUpdater() {
-  if (!app.isPackaged || researchBuild) return null;
+  if (!app.isPackaged || researchBuild || !updatePublicKey) return null;
   if (updater) return updater;
   try {
-    updater = require('electron-updater').autoUpdater;
+    const candidate = require('electron-updater').autoUpdater;
+    if (['verifySignature', 'dispatchUpdateDownloaded', 'addQuitHandler'].some((k) => typeof candidate[k] !== 'function')) {
+      log('updater: signature verification hooks not found, automatic updates disabled');
+      return null;
+    }
+    updater = candidate;
     updater.autoDownload = false;
-    updater.autoInstallOnAppQuit = true;
+    updater.autoInstallOnAppQuit = false;
     updater.disableWebInstaller = true;
     updater.logger = { info: (m) => log('updater', m), warn: (m) => log('updater warn', m), error: (m) => log('updater error', m), debug: () => {} };
     let offered = null;
     // 在 electron-updater 自身的 Authenticode 校验之后追加 Ed25519 校验；任一失败都会删除下载的文件并报错
     const authenticode = updater.verifySignature;
-    if (typeof authenticode === 'function') {
-      updater.verifySignature = async (file) => (await authenticode.call(updater, file)) || verifyUpdateSignature(file, offered);
-    } else if (updatePublicKey) {
-      log('updater: verifySignature hook not found, update signature check unavailable');
-    }
+    updater.verifySignature = async (file) => (await authenticode.call(updater, file)) || verifyUpdateSignature(file, offered);
+    // electron-updater 会复用下载缓存，缓存命中时不调用 NSIS 的 verifySignature。
+    // 因此在任何“下载完成”通知及退出安装前再校验最终文件，缓存也不能绕过签名。
+    const downloaded = updater.dispatchUpdateDownloaded;
+    updater.dispatchUpdateDownloaded = (event) => {
+      updateVerified = false;
+      updater.autoInstallOnAppQuit = false;
+      updater.verifySignature(event.downloadedFile).then(async (err) => {
+        if (err) {
+          const e = new Error(`更新签名校验失败：${err}`);
+          e.code = 'ERR_UPDATER_INVALID_SIGNATURE';
+          throw e;
+        }
+        updateVerified = true;
+        updater.autoInstallOnAppQuit = true;
+        downloaded.call(updater, event);
+        updater.addQuitHandler();
+      }).catch(async (e) => {
+        updateVerified = false;
+        updater.autoInstallOnAppQuit = false;
+        await updater.downloadedUpdateHelper?.clear().catch(() => {});
+        updater.emit('error', e);
+      });
+    };
     updater.on('checking-for-update', () => sendUpdate({ status: 'checking' }));
     updater.on('update-available', (i) => {
       offered = i;
+      updateVerified = false;
+      updater.autoInstallOnAppQuit = false;
       sendUpdate({ status: 'available', version: i.version });
     });
     updater.on('update-not-available', () => sendUpdate({ status: 'not-available' }));
@@ -296,7 +324,7 @@ function getUpdater() {
     updater.on('update-downloaded', (i) => sendUpdate({ status: 'downloaded', version: i.version }));
     updater.on('error', (e) => {
       log('updater', e && e.message);
-      sendUpdate({ status: 'error', message: String((e && e.message) || e) });
+      sendUpdate(updateError(e));
     });
   } catch (e) {
     log('updater load failed', e && e.message);
@@ -304,15 +332,21 @@ function getUpdater() {
   }
   return updater;
 }
+function updateError(e) {
+  if (['ERR_UPDATER_CHANNEL_FILE_NOT_FOUND', 'ERR_UPDATER_LATEST_VERSION_NOT_FOUND'].includes(e && e.code)) {
+    return { status: 'manual', message: '发布页尚未提供可验证的自动更新，请从 GitHub Releases 下载新版本手动安装。' };
+  }
+  return { status: 'error', message: String((e && e.message) || e) };
+}
 ipcMain.handle('update:check', async () => {
   const u = getUpdater();
   if (!u) return { status: 'disabled' };
   try {
     const r = await u.checkForUpdates();
     const v = r && r.updateInfo && r.updateInfo.version;
-    return v && v !== app.getVersion() ? { status: 'available', version: v } : { status: 'not-available' };
+    return r && r.isUpdateAvailable && v ? { status: 'available', version: v } : { status: 'not-available' };
   } catch (e) {
-    return { status: 'error', message: String((e && e.message) || e) };
+    return updateError(e);
   }
 });
 ipcMain.handle('update:download', async () => {
@@ -326,7 +360,7 @@ ipcMain.handle('update:info', () => ({
 }));
 ipcMain.handle('update:install', () => {
   const u = getUpdater();
-  if (u) u.quitAndInstall(false, true);
+  if (u && updateVerified) u.quitAndInstall(false, true);
 });
 
 /* ---------------------------- 启动 ---------------------------- */

@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | 作用 | 保证自动更新下载的安装包确实来自发布者、未被篡改、版本号未被冒充 | 让 Windows / SmartScreen 显示发布者名称，减少“未知发布者”警告；更新时 electron-updater 额外校验发布者 |
 | 需要 | 一对 Ed25519 密钥（免费，已生成，公钥在 `electron/update-public-key.pem`） | 代码签名证书（需要向证书机构购买，或使用 Azure Trusted Signing） |
-| 状态 | **已启用**：发布工作流在缺少私钥时拒绝发布 | 配置证书后自动启用；未配置时安装包不带 Authenticode 签名 |
+| 状态 | 客户端强制校验；配对私钥可用时发布签名更新，否则仅发布手动安装包，不发布 `latest.yml` | 配置证书后自动启用；未配置时安装包不带 Authenticode 签名 |
 
 ## 自动更新流程
 
@@ -18,6 +18,8 @@
    任何一项失败都会删除下载的文件并显示“更新失败”，不会安装。
 4. 点击“重启并安装”，或在退出游戏时自动静默安装。原版素材、存档与设置保存在用户目录，更新不会影响它们。
 
+缓存文件在发送“下载完成”通知前也会重新验证，验证完成前不允许手动或退出安装。缺少内置公钥或校验钩子时关闭自动更新；没有公开更新清单时，界面提示从 Releases 手动下载安装，不把“没有清单”当成“已是最新版”。便携 ZIP 的升级方式为手动下载解压。
+
 Ed25519 校验是对 Authenticode 的补充：electron-updater 在 PowerShell 无法执行时会跳过 Authenticode 校验，而 Ed25519 校验在应用内部用 Node.js 完成，不依赖外部程序。
 
 ## 发布者需要配置的仓库机密
@@ -26,7 +28,7 @@ Ed25519 校验是对 Authenticode 的补充：electron-updater 在 PowerShell �
 
 | 名称 | 类型 | 说明 |
 | --- | --- | --- |
-| `UPDATE_SIGNING_KEY` | Secret（必需） | Ed25519 私钥 PEM 全文（`-----BEGIN PRIVATE KEY-----` 开头）。与 `electron/update-public-key.pem` 配对 |
+| `UPDATE_SIGNING_KEY` | Secret（签名更新必需） | Ed25519 私钥 PEM 全文（`-----BEGIN PRIVATE KEY-----` 开头）。与 `electron/update-public-key.pem` 配对；没有时仍可发布手动安装包 |
 | `WIN_CSC_LINK` | Secret（可选） | PFX 代码签名证书：base64 编码的 `.pfx` 内容或可下载的 HTTPS 链接 |
 | `WIN_CSC_KEY_PASSWORD` | Secret（可选） | PFX 密码 |
 | `AZURE_TENANT_ID`、`AZURE_CLIENT_ID`、`AZURE_CLIENT_SECRET` | Secret（可选） | Azure Trusted Signing 的服务主体 |
@@ -47,3 +49,4 @@ PFX 与 Azure Trusted Signing 二选一，同时配置时使用 PFX。
 - 单元测试 `tests/update-signature.test.ts`：签名与校验、篡改内容、冒充版本号、错误密钥、electron-builder 钩子。
 - 发布工作流：打包后用仓库内的公钥校验 `.sig`（确认私钥与公钥配对）；配置证书时校验安装包与主程序的 Authenticode 状态为 Valid。
 - CI 的自动更新端到端测试 `scripts/test-update-e2e.ps1`（Windows）：用临时证书与临时密钥构建 1.0.0 与 1.0.1，安装 1.0.0，本机 HTTP 服务器模拟发布源；先提供伪造签名的 1.0.1，确认更新被拒绝、版本不变，再提供正确签名的 1.0.1，确认下载、双重校验、静默安装后版本变为 1.0.1。
+- 上述完整夹具会创建测试密钥并在临时 runner 信任测试证书，现仅在手动运行 CI 并明确选择 `run_signed_update_fixture` 时执行。日常 CI/Release 不创建凭据、不改认证或仓库权限。`tests/updater.test.ts` 使用模拟接口覆盖缺公钥、缺校验钩子、旧版本误报、缺更新清单、缓存签名拒绝及安装安全门；密码学单元测试使用进程内临时测试数据，不用于认证或生产发布。
