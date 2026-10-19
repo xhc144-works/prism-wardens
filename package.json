@@ -1,0 +1,129 @@
+{
+  "name": "prism-wardens",
+  "productName": "Prism Wardens",
+  "version": "1.0.1",
+  "description": "棱镜守卫 Prism Wardens — 原创策略塔防游戏，内置修改器、AI 自动游玩/研究与自定义挑战规则",
+  "author": "Prism Wardens Team",
+  "license": "MIT",
+  "private": true,
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check:public": "node scripts/check-public-build.mjs",
+    "preview": "vite preview --port 4173",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:import": "node scripts/test-electron-import.mjs",
+    "sim": "tsx cli/sim.ts",
+    "electron": "electron .",
+    "dist:win": "npm run build && electron-builder --win --x64 --publish never",
+    "dist:dir": "npm run build && electron-builder --dir",
+    "dist:research": "node scripts/dist-research.mjs",
+    "assets:import": "tsx tools/import/cli.ts",
+    "predev": "node scripts/vendor-openmpt.mjs",
+    "prebuild": "node scripts/vendor-openmpt.mjs && node scripts/build-importer.mjs",
+    "update-key": "node scripts/update-signature.mjs keygen"
+  },
+  "dependencies": {
+    "7zip-bin": "5.2.0",
+    "electron-updater": "6.8.9",
+    "preact": "10.24.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "22.10.1",
+    "chiptune3": "0.8.9",
+    "electron": "33.2.1",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.23.1",
+    "tsx": "4.19.2",
+    "typescript": "5.6.3",
+    "vite": "5.4.11",
+    "vitest": "2.1.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xhc144/zwdzjs.git"
+  },
+  "homepage": "https://github.com/xhc144/zwdzjs",
+  "build": {
+    "appId": "com.prismwardens.game",
+    "productName": "Prism Wardens",
+    "copyright": "Copyright © 2026 Prism Wardens Team",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "toolsets": {
+      "nsis": "1.2.1"
+    },
+    "files": [
+      "dist/**/*",
+      "!dist/pvz/**",
+      "electron/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "asar": true,
+    "compression": "normal",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "PrismWardens-${version}-${arch}.${ext}",
+      "legalTrademarks": "Prism Wardens",
+      "requestedExecutionLevel": "asInvoker",
+      "signtoolOptions": {
+        "rfc3161TimeStampServer": "http://timestamp.digicert.com"
+      }
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "棱镜守卫 Prism Wardens",
+      "uninstallDisplayName": "棱镜守卫 Prism Wardens ${version}",
+      "artifactName": "PrismWardens-Setup-${version}.${ext}",
+      "differentialPackage": true,
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": [
+        "zh_CN",
+        "en_US"
+      ],
+      "language": "2052",
+      "license": "build/license.txt",
+      "runAfterFinish": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "xhc144",
+        "repo": "zwdzjs",
+        "releaseType": "release"
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/7zip-bin/win/x64/**",
+      "node_modules/7zip-bin/linux/x64/**"
+    ],
+    "afterAllArtifactBuild": "scripts/electron-builder-after-all.cjs"
+  }
+}
