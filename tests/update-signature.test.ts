@@ -8,6 +8,7 @@ import path from 'node:path';
 const require = createRequire(import.meta.url);
 const sig = require('../electron/update-signature.cjs');
 const afterAll = require('../scripts/electron-builder-after-all.cjs');
+const { matchesPublicKey } = require('../scripts/check-update-key.cjs');
 
 function tmpFile(name: string, bytes = 200_000) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-sig-'));
@@ -44,6 +45,13 @@ describe('更新签名（Ed25519）', () => {
     const pem = sig.loadPublicKey();
     expect(pem).toBeTruthy();
     expect(createPublicKey(pem).asymmetricKeyType).toBe('ed25519');
+  });
+
+  it('发布前拒绝缺失、损坏或与已安装版本不配对的密钥', () => {
+    expect(matchesPublicKey(keys.privateKey, keys.publicKey)).toBe(true);
+    expect(matchesPublicKey('', keys.publicKey)).toBe(false);
+    expect(matchesPublicKey('not-a-private-key', keys.publicKey)).toBe(false);
+    expect(matchesPublicKey(keys.privateKey, sig.loadPublicKey())).toBe(false);
   });
 
   it('electron-builder 钩子为安装包生成 .sig，未配置私钥时跳过', async () => {

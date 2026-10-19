@@ -17,7 +17,7 @@ jobs:
     name: 构建并发布到 GitHub Releases
     runs-on: windows-latest
     timeout-minutes: 40
-    # 签名所需的机密与变量（未配置的项为空，对应的签名方式不会启用）
+    # Ed25519 必须匹配内置公钥；Windows Authenticode 仍为可选配置。
     env:
       UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
       CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
@@ -40,8 +40,8 @@ jobs:
       - name: 检查签名配置
         shell: pwsh
         run: |
-          if ($env:UPDATE_SIGNING_KEY) { Write-Host '将生成并验证 Ed25519 更新签名' }
-          else { Write-Host '::warning::缺少 UPDATE_SIGNING_KEY：发布手动安装包，不发布 latest.yml，保留客户端签名校验' }
+          node scripts/check-update-key.cjs
+          if ($LASTEXITCODE) { throw '生产更新签名配置未通过，停止发布' }
           if ($env:CSC_LINK) { Write-Host 'Authenticode：使用 WIN_CSC_LINK 证书签名' }
           elseif ($env:AZURE_SIGN_ENDPOINT) { Write-Host 'Authenticode：使用 Azure Trusted Signing 签名' }
           else { Write-Host '::warning::未配置代码签名证书，安装包没有 Authenticode 签名（Windows SmartScreen 会提示未知发布者）；更新仍受 Ed25519 签名保护' }

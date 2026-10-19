@@ -1,7 +1,7 @@
 {
   "name": "prism-wardens",
   "productName": "Prism Wardens",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "棱镜守卫 Prism Wardens — 原创策略塔防游戏，内置修改器、AI 自动游玩/研究与自定义挑战规则",
   "author": "Prism Wardens Team",
   "license": "MIT",

@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { createRequire } from 'node:module';
 const { version } = createRequire(import.meta.url)('../package.json');
 const exe = process.argv[2];
+const expectedVersion = process.argv[3] || version;
 if (!exe) throw new Error('需要传入本次构建并安装的 Prism Wardens.exe 路径');
 const app = await _electron.launch({ executablePath: resolve(exe), timeout: 60_000 });
 try {
@@ -14,7 +15,7 @@ try {
   await expect(win.locator('.logo')).toHaveText('棱镜守卫', { timeout: 60_000 });
   const info = await win.evaluate(async () => ({ version: window.prismNative.version, platform: window.prismNative.platform,
     update: await window.prismNative.update.info(), assets: await window.prismNative.assets.status() }));
-  expect(info.version).toBe(version);
+  expect(info.version).toBe(expectedVersion);
   expect(info.platform).toBe('win32');
   expect(info.update.enabled).toBe(true);
   expect(info.update.signature).toBe(true);

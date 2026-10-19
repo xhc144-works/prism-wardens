@@ -1,0 +1,48 @@
+name: Verify published update
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: '已经公开发布的目标版本（不含 v；起始版本固定为 1.0.2）'
+        required: true
+        type: string
+        default: '1.0.3'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-published-update
+  cancel-in-progress: false
+
+jobs:
+  upgrade:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: 安装验收依赖
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: 从真实发布的 1.0.2 匿名检查、下载、验签并安装升级
+        shell: pwsh
+        env:
+          TARGET_VERSION: ${{ inputs.target_version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/test-published-update.ps1 -TargetVersion $env:TARGET_VERSION
+      - name: 保留无凭据验收结果与升级后截图
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-update-proof
+          path: |
+            release/published-update-proof.json
+            release/published-update-safe.log
+            release/installed-app.png
+          if-no-files-found: warn

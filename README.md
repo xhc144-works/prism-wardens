@@ -54,7 +54,9 @@ npm run electron            # 以桌面应用运行（需先 npm run build）
 
 ## 发布与自动更新
 
-推送与 `package.json` 版本一致的 `v*` 标签会触发 Release 工作流：运行测试、构建一次、检查不含原版素材、验证同一份安装包的安装/启动/卸载，再发布到 GitHub Releases。配置了配对的 `UPDATE_SIGNING_KEY` 时，额外校验并发布 `latest.yml`、blockmap 与 `.sig`；未配置时仍发布手动安装包与校验和，不发布更新清单。签名不匹配会阻止发布，不会退回不安全的更新方式。
+推送与 `package.json` 版本一致的 `v*` 标签会触发 Release 工作流：先确认 Actions 内的 `UPDATE_SIGNING_KEY` 与内置 Ed25519 公钥匹配，再运行测试、构建一次、检查不含原版素材、验证同一份安装包的安装/启动/卸载，最后发布安装包、便携版、校验和、`latest.yml`、blockmap 与 `.sig`。缺少或不匹配的私钥会阻止新发布，已经发布的手动安装版本保留。
+
+发布后可手动运行 `Verify published update` 工作流：安装已发布的 1.0.2，在不向客户端传递 GitHub 凭据、不更改更新源和公钥的条件下，从真实 GitHub Releases 下载并升级到指定新版。该验收与临时证书、本地服务器的测试独立，不生成密钥或改动证书信任。私有仓库的匿名客户端无法直接访问更新源，不能通过内嵌 token 解决。
 
 桌面版通过 electron-updater 检查更新、增量下载，校验发布者的 Ed25519 签名（以及配置证书后的 Windows Authenticode 签名）后才会安装，复用缓存也重新校验。签名配置见 [docs/SIGNING.md](docs/SIGNING.md)。
 
