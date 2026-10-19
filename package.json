@@ -46,9 +46,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/xhc144/zwdzjs.git"
+    "url": "https://github.com/xhc144/prism-wardens.git"
   },
-  "homepage": "https://github.com/xhc144/zwdzjs",
+  "homepage": "https://github.com/xhc144/prism-wardens",
   "build": {
     "appId": "com.prismwardens.game",
     "productName": "Prism Wardens",
@@ -116,7 +116,7 @@
       {
         "provider": "github",
         "owner": "xhc144",
-        "repo": "zwdzjs",
+        "repo": "prism-wardens",
         "releaseType": "release"
       }
     ],

@@ -237,11 +237,11 @@ function readUpdateConfig() {
       provider: get('provider') || 'github',
       url: get('url') || null,
       owner: get('owner') || 'xhc144',
-      repo: get('repo') || 'zwdzjs',
+      repo: get('repo') || 'prism-wardens',
       publisherName: pub ? pub[1].split('\n').map((l) => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean) : null,
     };
   } catch {
-    return { provider: 'github', url: null, owner: 'xhc144', repo: 'zwdzjs', publisherName: null };
+    return { provider: 'github', url: null, owner: 'xhc144', repo: 'prism-wardens', publisherName: null };
   }
 }
 

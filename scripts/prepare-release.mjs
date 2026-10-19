@@ -34,8 +34,8 @@ const sums = names.map((name) => `${createHash('sha256').update(fs.readFileSync(
 fs.writeFileSync(path.join(dest, 'SHA256SUMS.txt'), sums);
 const commit = process.env.GITHUB_SHA || 'local';
 fs.writeFileSync(path.join(root, 'release-notes.md'), `## Windows x64\n\n` +
-  `- 安装版：[${setup}](https://github.com/xhc144/zwdzjs/releases/download/v${version}/${setup})。运行后按安装向导安装，可在 Windows 设置中卸载。\n` +
-  `- 便携版：[${zip}](https://github.com/xhc144/zwdzjs/releases/download/v${version}/${zip})。解压全部文件后运行 Prism Wardens.exe；升级便携版请手动下载解压。\n` +
+  `- 安装版：[${setup}](https://github.com/xhc144/prism-wardens/releases/download/v${version}/${setup})。运行后按安装向导安装，可在 Windows 设置中卸载。\n` +
+  `- 便携版：[${zip}](https://github.com/xhc144/prism-wardens/releases/download/v${version}/${zip})。解压全部文件后运行 Prism Wardens.exe；升级便携版请手动下载解压。\n` +
   `- 支持 Windows 10/11 64 位。Source code 压缩包不是安装包。\n` +
   `- 安装包已在 Windows CI 验证安装、版本、注册表、主窗口启动及卸载。SHA256SUMS.txt 供下载完整性核对。\n\n` +
   `## 更新与签名\n\n` +

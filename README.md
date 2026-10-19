@@ -22,7 +22,7 @@
 
 ## 下载与安装
 
-在 [Releases](https://github.com/xhc144/zwdzjs/releases) 下载 `PrismWardens-Setup-<版本>.exe`（Windows 10/11 64 位安装版，含卸载程序）或 `PrismWardens-<版本>-x64.zip`（便携版）。安装版运行安装向导；便携版解压全部文件后运行 `Prism Wardens.exe`。GitHub 自动提供的 Source code ZIP/TAR 是源码，不是安装包。可用 `SHA256SUMS.txt` 核对下载完整性。
+在 [Releases](https://github.com/xhc144/prism-wardens/releases) 下载 `PrismWardens-Setup-<版本>.exe`（Windows 10/11 64 位安装版，含卸载程序）或 `PrismWardens-<版本>-x64.zip`（便携版）。安装版运行安装向导；便携版解压全部文件后运行 `Prism Wardens.exe`。GitHub 自动提供的 Source code ZIP/TAR 是源码，不是安装包。可用 `SHA256SUMS.txt` 核对下载完整性。
 
 安装版只接受有效签名的自动更新；是否已配置签名更新见各版本发布说明。没有签名更新清单时，请从发布页手动下载安装。便携版请手动下载新版本并解压。未配置 Windows 代码签名证书的版本可能提示“未知发布者”。安装后在 **设置 → 美术风格与原版资源** 中导入自己合法持有的副本即可切换到经典画面。
 

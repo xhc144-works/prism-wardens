@@ -59,7 +59,7 @@
 
 用户最初要求保留分支，随后明确授权只清理 `xhc144/zwdzjs` 已完整合入 `main` 的多余分支。以下清单在执行删除前写入并推送，用于恢复；`claude-lab` 仅只读核对，不清理其分支。
 
-| 待清理远端分支 | 删除前冻结的 tip SHA | 合并依据 |
+| 已清理远端分支 | 删除前冻结的 tip SHA | 合并依据 |
 | --- | --- | --- |
 | `claude/tender-cerf-k5pm7r` | `87fcad5c67cb2c6fdbaef09229e4a96edd056ed2` | tip 是验收主分支 `6814409` 的祖先，完整历史经 `66cbf9d` 合并 |
 | `codex/release-1.0.1` | `2d92e827d740d2b1320f7ae7f9f9e76c2cb45ae7` | tip 是验收主分支 `6814409` 的祖先，完整历史经 `66cbf9d` 合并 |
@@ -73,4 +73,10 @@ git push origin 87fcad5c67cb2c6fdbaef09229e4a96edd056ed2:refs/heads/claude/tende
 git push origin 2d92e827d740d2b1320f7ae7f9f9e76c2cb45ae7:refs/heads/codex/release-1.0.1
 ```
 
-执行状态：已核验并记录恢复点，待确认本记录远端提交成功后删除。
+执行状态：恢复点先通过提交 `bdcc5fa4006aa07845b495be3d8906dee5b013d8` 写入远端，经 API 核对提交和文件 blob 后，以精确 tip 租约原子删除上述两分支。删除后远端仅有 `main`；`v1.0.1`、`v1.0.2` 标签及其指向均未改动。未触及 `claude-lab` 的分支。
+
+## 仓库改名（2026-10-19）
+
+核查时 GitHub 已将 `xhc144/zwdzjs` 重命名为 `xhc144/prism-wardens`；新旧地址返回相同仓库 ID `1423054528`，仍为 public，默认分支仍为 main，已有 Release ID `416841212` 保留。没有重复创建仓库或再次执行改名。
+
+本地 origin 已改为新地址；README 下载入口、package.json 的 repository/homepage/GitHub publish 配置、更新器缺省仓库名和后续 Release 说明下载地址统一改为 `prism-wardens`。不改软件版本、不覆盖已发布安装包，不改公钥、签名要求或权限。已发布 `v1.0.2` 中仍内嵌旧地址，须单独核验旧 URL 重定向与该版本的真实 Windows 更新检查；不能仅以文档替换作为验收。

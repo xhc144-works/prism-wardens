@@ -56,7 +56,7 @@ describe('桌面自动更新的检查与安全门', () => {
   it('发布页没有更新清单时明确提示手动安装', async () => {
     const { updater, handlers } = desktop();
     const { GitHubProvider } = require('electron-updater/out/providers/GitHubProvider');
-    const provider = new GitHubProvider({ owner: 'xhc144', repo: 'zwdzjs' }, { allowPrerelease: false },
+    const provider = new GitHubProvider({ owner: 'xhc144', repo: 'prism-wardens' }, { allowPrerelease: false },
       { platform: 'win32', executor: { request: async () => '<feed></feed>' } });
     const emptyError = await provider.getLatestVersion().catch((e: Error) => e);
     expect(emptyError.code).toBe('ERR_XML_MISSED_ELEMENT');
@@ -88,8 +88,8 @@ describe('桌面自动更新的检查与安全门', () => {
     const { updater, handlers } = desktop();
     const { GitHubProvider } = require('electron-updater/out/providers/GitHubProvider');
     const { HttpError } = require('builder-util-runtime');
-    const feed = '<feed><entry><link href="https://github.com/xhc144/zwdzjs/releases/tag/v1.0.1"/><title>v1.0.1</title></entry></feed>';
-    const provider = new GitHubProvider({ owner: 'xhc144', repo: 'zwdzjs' }, { allowPrerelease: false },
+    const feed = '<feed><entry><link href="https://github.com/xhc144/prism-wardens/releases/tag/v1.0.1"/><title>v1.0.1</title></entry></feed>';
+    const provider = new GitHubProvider({ owner: 'xhc144', repo: 'prism-wardens' }, { allowPrerelease: false },
       { platform: 'win32', executor: { request: async (options: { path: string }) => {
         if (options.path.endsWith('.atom')) return feed;
         throw new HttpError(406, 'No production release');
@@ -113,7 +113,7 @@ describe('桌面自动更新的检查与安全门', () => {
     await vi.waitFor(() => expect(downloaded).toHaveBeenCalled());
     expect(authenticode).toHaveBeenCalledWith('/tmp/cache.exe');
     expect(verifyFile).toHaveBeenCalled();
-    expect(fetch).toHaveBeenCalledWith('https://github.com/xhc144/zwdzjs/releases/download/v1.0.1/PrismWardens-Setup-1.0.1.exe.sig');
+    expect(fetch).toHaveBeenCalledWith('https://github.com/xhc144/prism-wardens/releases/download/v1.0.1/PrismWardens-Setup-1.0.1.exe.sig');
     expect(updater.autoInstallOnAppQuit).toBe(true);
     handlers.get('update:install')!();
     expect(updater.quitAndInstall).toHaveBeenCalledWith(false, true);
