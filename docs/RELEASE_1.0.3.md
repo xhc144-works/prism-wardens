@@ -14,4 +14,47 @@
 
 ## 验证状态
 
-准备阶段本地类型检查、59 项单元测试、Web 构建、公开素材检查通过。签名发布及已发布二进制的跨版本升级尚待 Actions 结果，不能将测试代码存在视为升级已验证。最终运行结果应在执行后追加。
+本地类型检查、59 项单元测试、Web 构建、公开素材检查通过；浏览器验收 5 项通过，3 项需要本地原版素材的测试跳过。
+
+### 发布与下载已完成
+
+- 发布源码及 `v1.0.3` 标签：`0d3a3d38c432817b7a74be1860f7ab14b38c1c1a`。
+- [完整 CI](https://github.com/xhc144/prism-wardens/actions/runs/39192949134) 成功，包括 Linux 测试、AI 模拟、浏览器验收和 Windows 构建、实际安装/启动/卸载。
+- [Release 工作流](https://github.com/xhc144/prism-wardens/actions/runs/39192960544) 成功；生产 Secret 在 Actions 内确认匹配原公钥，构建后再次校验真实安装包签名。主窗口原生接口报告版本 1.0.3、平台 win32、签名更新启用、无内置原版素材。
+- [正式 Release](https://github.com/xhc144/prism-wardens/releases/tag/v1.0.3)，ID `416864406`，2026-10-19 03:09:05 UTC 发布，非草稿。既有 1.0.2、历史标签和发布资产保留。
+- 六个发布资产均通过独立匿名 HTTP 200 下载；其中校验和清单列出的五项按 `SHA256SUMS.txt` 逐个核对通过。便携 ZIP 完整，105 个条目，主程序 PE 为 x64（`0x8664`），其 app.asar 的公钥与仓库一致，未包含原版素材。独立验证下载安装包的 Ed25519 签名、清单版本、安装包路径及 SHA-512 全部通过。
+
+| 资产 | 字节数 | SHA-256 |
+| --- | ---: | --- |
+| `PrismWardens-Setup-1.0.3.exe` | 85,878,608 | `b5b54513d0cf0435187424091ded0705782aea60ec43f2d27fbae47997742d21` |
+| `PrismWardens-1.0.3-x64.zip` | 118,567,788 | `b09d47a9e1df9552691967e5852cdc1bb5cd4ea5abdb5c84dfaccbcf2de4a838` |
+| `PrismWardens-Setup-1.0.3.exe.blockmap` | 90,802 | `f1d720ebac4fec7ab160e5d2fc6ac8e123ffa6cf288b0d514bf78f23bf526dcd` |
+| `PrismWardens-Setup-1.0.3.exe.sig` | 281 | `c4bfa9ea4d6cbcd6efd3c1e2a4fbe8c9d7fa08c19ceac33f0d4b2ae98086e048` |
+| `latest.yml` | 352 | `59e26ba957d365e10ddde7ecc446e1af16852fc3ec6d1479aa5df836aafe9958` |
+
+目标系统为 Windows 10/11 64 位。下载安装版 `.exe`，运行安装向导；或完整解压便携 `.zip` 后运行 `Prism Wardens.exe`。GitHub 自动生成的 Source code 压缩包不是安装包。
+
+### 真实历史二进制升级已完成
+
+[Verify published update](https://github.com/xhc144/prism-wardens/actions/runs/39193338466) 于 2026-10-19 UTC 成功，Windows job `117870676451`，耗时 1 分 25 秒。[验收产物](https://github.com/xhc144/prism-wardens/actions/runs/39193338466/artifacts/12160947248) 包含 JSON、过滤 URL 的日志和升级后设置窗口截图；关键 JSON 另存为 [evidence/1.0.3-upgrade.json](evidence/1.0.3-upgrade.json)，便于在 Actions 产物到期后核对。
+
+起点为已发布的原始 1.0.2 安装包，SHA-256 固定为 `ca21e8c600b4a59ec69d1973eeda6fa8d7a1ecdd3e9d2838e07950272504398c`。没有改写其 `repo: zwdzjs` 更新源或公钥；客户端进程未继承 GitHub Token、生产签名私钥或证书密码。旧地址的 latest、更新清单和签名文件也独立验证匿名 HTTP 200，内容与新地址相同。
+
+真实日志记录：
+
+- 03:10:39.865：发现 1.0.3。
+- 03:10:40.540：完整包 83,865.83 KB，增量下载 1,861.29 KB（2%），86 个变化块；没有退回完整下载。
+- 03:10:43.178、03:10:43.957：安装包 Ed25519 验签两次通过，覆盖下载结束与最终安装门禁。
+- 03:10:43.958：发出 `e2e update-downloaded 1.0.3`。
+- 03:10:44.465：以 `--updated,/S` 启动已验证的真实更新安装包。
+- 03:10:55：已安装版本为 1.0.3，主窗口、原生接口和检查更新按钮通过；再次检查返回 `not-available`，最新版本为 1.0.3。用户数据目录内的哨兵文件保留。
+
+该验收证明当前公开 GitHub 发布源上的 1.0.2 → 1.0.3 实际升级成功，不是临时密钥、本地 HTTP 源或重打包旧版的模拟。未逐一验证所有真实玩家存档迁移；本次无存档格式变更。旧版启动时 stderr 有一次 `net::ERR_FILE_NOT_FOUND`，日志未标明请求文件；升级及新版 UI 验收通过，不能将该日志解释成全程没有任何 stderr。
+
+## 限制与既有问题原因
+
+- 原先默认分支只有第三方安装程序，软件源码在未合并分支；没有正式安装包 Release。后来 1.0.2 发布时生产更新 Secret 为空，因此有手动安装包、没有 `latest.yml` 和 `.sig`。本次已经确认新配置的原私钥匹配，并补齐真正可用的签名更新资产。
+- 更新按钮在桌面版的设置页；浏览器版不提供安装更新，研究版有意禁用公开更新。修复过的版本判断、安装包文件选择和下载缓存签名门禁保留。
+- 本次没有配置 Windows Authenticode 证书，PE 证书表为零；Ed25519 更新签名有效，不能称为 Windows 可信发布者签名，系统可能显示未知发布者。
+- 仓库仍为公开。此前私有化 API 返回 403（integration 没有该管理权限），未再次尝试或改变任何认证/权限。如果用户在网站将其设为私有，历史客户端没有 GitHub 下载凭据，会产生新的认证阻塞；没有内嵌 token 或另建公开更新源。
+- 当前没有已转换的本地原版资源。历史第三方游戏安装器仍保留在 Git 历史中，但未确认其对外再发布权；用户个人使用需求不自动等于公开再分发授权。本次发布排除原版程序和素材，玩家可在设置中从自己的合法副本本地导入。没有执行第三方安装程序。

@@ -1,0 +1,16 @@
+{
+  "from": "1.0.2",
+  "target": "1.0.3",
+  "repository": "xhc144/prism-wardens",
+  "baselineSHA256": "ca21e8c600b4a59ec69d1973eeda6fa8d7a1ecdd3e9d2838e07950272504398c",
+  "clientCredentials": false,
+  "feedUnchanged": true,
+  "publicKeyUnchanged": true,
+  "signatureVerified": true,
+  "downloaded": true,
+  "installed": true,
+  "dataPreserved": true,
+  "uiPassed": true,
+  "success": true,
+  "fullDownloadFallback": false
+}
