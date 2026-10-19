@@ -45,5 +45,5 @@
 ## 本轮失败及处理
 
 - 本地首次 `npm ci` 在 Electron Linux 二进制下载时连接被拒绝；改为 `ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci`，在 Linux 完成源码测试，Windows 二进制由 GitHub Windows runner 构建与运行。
-- [CI 39187519836](https://github.com/xhc144/zwdzjs/actions/runs/39187519836)：构建、安装、主程序/注册表版本校验、界面渲染、更新按钮和 native bridge 均成功，但首次真实 GitHub 检查返回 `ERR_UPDATER_NO_PUBLISHED_VERSIONS`，当时未归入“手动安装”状态，测试因此失败；已补齐该错误码并增加回归覆盖。未把这次失败记为完整 Windows 验证成功。
+- [CI 39187519836](https://github.com/xhc144/zwdzjs/actions/runs/39187519836)：构建、安装、主程序/注册表版本校验、界面渲染、更新按钮和 native bridge 均成功，但首次真实 GitHub 检查返回 `No published versions on GitHub`，当时未归入“手动安装”状态，测试因此失败。追查依赖发现，完全空的 Atom feed 会先抛 `ERR_XML_MISSED_ELEMENT`，无稳定版本标签时则为 `ERR_UPDATER_NO_PUBLISHED_VERSIONS`；已分别处理，仅把明确的空 feed XML 错误映射为手动安装，其他格式错误仍报错。未把这次失败记为完整 Windows 验证成功。
 - 复查发现 app.asar 路径在 Windows 使用反斜杠；统一分隔符后再做素材目录检查，新增真实 asar 的隔离回归测试，防止检查被路径格式绕过。

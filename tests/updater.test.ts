@@ -55,10 +55,19 @@ describe('桌面自动更新的检查与安全门', () => {
   });
   it('发布页没有更新清单时明确提示手动安装', async () => {
     const { updater, handlers } = desktop();
+    const { GitHubProvider } = require('electron-updater/out/providers/GitHubProvider');
+    const provider = new GitHubProvider({ owner: 'xhc144', repo: 'zwdzjs' }, { allowPrerelease: false },
+      { platform: 'win32', executor: { request: async () => '<feed></feed>' } });
+    const emptyError = await provider.getLatestVersion().catch((e: Error) => e);
+    expect(emptyError.code).toBe('ERR_XML_MISSED_ELEMENT');
+    updater.checkForUpdates.mockRejectedValueOnce(emptyError);
+    expect(await handlers.get('update:check')!()).toMatchObject({ status: 'manual' });
     for (const code of ['ERR_UPDATER_CHANNEL_FILE_NOT_FOUND', 'ERR_UPDATER_NO_PUBLISHED_VERSIONS']) {
       updater.checkForUpdates.mockRejectedValueOnce(Object.assign(new Error('404'), { code }));
       expect(await handlers.get('update:check')!()).toMatchObject({ status: 'manual', message: expect.stringContaining('手动安装') });
     }
+    updater.checkForUpdates.mockRejectedValueOnce(Object.assign(new Error('No element link'), { code: 'ERR_XML_MISSED_ELEMENT' }));
+    expect(await handlers.get('update:check')!()).toMatchObject({ status: 'error' });
   });
   it('保留 Authenticode 校验，拒绝签名不符的缓存并禁止退出安装', async () => {
     const { updater, handlers, verifyFile } = desktop();
