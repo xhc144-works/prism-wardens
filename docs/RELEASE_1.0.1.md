@@ -30,7 +30,7 @@
 ## 已运行的验证
 
 - AI 冒烟模拟：4 关 × 2 策略 × 5 次，共 40 局，39 胜，完整生成 JSON 战报。
-- 本地 `npm run typecheck` 通过；`npm test`：6 文件、56 测试通过。
+- 本地 `npm run typecheck` 通过；`npm test`：7 文件、57 测试通过（含真实 app.asar 素材隔离测试）。
 - `npm run build` 与 `node scripts/check-public-build.mjs` 通过；两份 workflow 可解析，`git diff --check` 通过。
 - Playwright：5 个公开版用例通过，3 个需要原版素材的经典画面用例跳过（未导入原版素材）。覆盖菜单/设置、手动部署、AI 通关及录像、Worker 批量模拟、修改器。
 - 历史 Windows [CI run 39141623341](https://github.com/xhc144/zwdzjs/actions/runs/39141623341) 的安装/卸载与签名升级步骤成功；该升级源为本机 HTTP、临时证书/测试密钥，不是生产 GitHub 发布源。
@@ -41,3 +41,9 @@
 本记录写入时，1.0.1 的 Windows CI、正式 Release 和匿名下载尚待运行。通过真实 GitHub Release 的跨版本自动升级须具备与内置公钥配对的生产私钥以及后续新版本；本地单元测试或历史夹具不代表生产升级已经通过。
 
 当前 GitHub 集成读取 Secrets/Variables 名称返回 HTTP 403（Resource not accessible by integration），未修改权限。是否具备可用签名配置以 Release 工作流实际运行结果为准。
+
+## 本轮失败及处理
+
+- 本地首次 `npm ci` 在 Electron Linux 二进制下载时连接被拒绝；改为 `ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci`，在 Linux 完成源码测试，Windows 二进制由 GitHub Windows runner 构建与运行。
+- [CI 39187519836](https://github.com/xhc144/zwdzjs/actions/runs/39187519836)：构建、安装、主程序/注册表版本校验、界面渲染、更新按钮和 native bridge 均成功，但首次真实 GitHub 检查返回 `ERR_UPDATER_NO_PUBLISHED_VERSIONS`，当时未归入“手动安装”状态，测试因此失败；已补齐该错误码并增加回归覆盖。未把这次失败记为完整 Windows 验证成功。
+- 复查发现 app.asar 路径在 Windows 使用反斜杠；统一分隔符后再做素材目录检查，新增真实 asar 的隔离回归测试，防止检查被路径格式绕过。

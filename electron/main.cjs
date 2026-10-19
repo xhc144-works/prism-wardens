@@ -333,7 +333,7 @@ function getUpdater() {
   return updater;
 }
 function updateError(e) {
-  if (['ERR_UPDATER_CHANNEL_FILE_NOT_FOUND', 'ERR_UPDATER_LATEST_VERSION_NOT_FOUND'].includes(e && e.code)) {
+  if (['ERR_UPDATER_CHANNEL_FILE_NOT_FOUND', 'ERR_UPDATER_LATEST_VERSION_NOT_FOUND', 'ERR_UPDATER_NO_PUBLISHED_VERSIONS'].includes(e && e.code)) {
     return { status: 'manual', message: '发布页尚未提供可验证的自动更新，请从 GitHub Releases 下载新版本手动安装。' };
   }
   return { status: 'error', message: String((e && e.message) || e) };

@@ -55,8 +55,10 @@ describe('桌面自动更新的检查与安全门', () => {
   });
   it('发布页没有更新清单时明确提示手动安装', async () => {
     const { updater, handlers } = desktop();
-    updater.checkForUpdates.mockRejectedValueOnce(Object.assign(new Error('404'), { code: 'ERR_UPDATER_CHANNEL_FILE_NOT_FOUND' }));
-    expect(await handlers.get('update:check')!()).toMatchObject({ status: 'manual', message: expect.stringContaining('手动安装') });
+    for (const code of ['ERR_UPDATER_CHANNEL_FILE_NOT_FOUND', 'ERR_UPDATER_NO_PUBLISHED_VERSIONS']) {
+      updater.checkForUpdates.mockRejectedValueOnce(Object.assign(new Error('404'), { code }));
+      expect(await handlers.get('update:check')!()).toMatchObject({ status: 'manual', message: expect.stringContaining('手动安装') });
+    }
   });
   it('保留 Authenticode 校验，拒绝签名不符的缓存并禁止退出安装', async () => {
     const { updater, handlers, verifyFile } = desktop();
