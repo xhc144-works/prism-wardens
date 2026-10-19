@@ -84,6 +84,23 @@ describe('桌面自动更新的检查与安全门', () => {
     handlers.get('update:install')!();
     expect(updater.quitAndInstall).not.toHaveBeenCalled();
   });
+  it('只有标签、没有正式 Release 时，实际 GitHubProvider 的嵌套 406 错误仍提示手动安装', async () => {
+    const { updater, handlers } = desktop();
+    const { GitHubProvider } = require('electron-updater/out/providers/GitHubProvider');
+    const { HttpError } = require('builder-util-runtime');
+    const feed = '<feed><entry><link href="https://github.com/xhc144/zwdzjs/releases/tag/v1.0.1"/><title>v1.0.1</title></entry></feed>';
+    const provider = new GitHubProvider({ owner: 'xhc144', repo: 'zwdzjs' }, { allowPrerelease: false },
+      { platform: 'win32', executor: { request: async (options: { path: string }) => {
+        if (options.path.endsWith('.atom')) return feed;
+        throw new HttpError(406, 'No production release');
+      } } });
+    const error = await provider.getLatestVersion().catch((e: Error) => e);
+    expect(error.code).toBe('ERR_UPDATER_INVALID_RELEASE_FEED');
+    updater.checkForUpdates.mockRejectedValueOnce(error);
+    expect(await handlers.get('update:check')!()).toMatchObject({ status: 'manual' });
+    updater.checkForUpdates.mockRejectedValueOnce(Object.assign(new Error('Other malformed feed'), { code: 'ERR_UPDATER_INVALID_RELEASE_FEED' }));
+    expect(await handlers.get('update:check')!()).toMatchObject({ status: 'error' });
+  });
   it('最终文件通过签名后才允许下载完成通知和安装', async () => {
     const { updater, handlers, verifyFile, fetch } = desktop();
     const downloaded = updater.dispatchUpdateDownloaded;

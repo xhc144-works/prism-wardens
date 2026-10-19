@@ -334,7 +334,12 @@ function getUpdater() {
 }
 function updateError(e) {
   const emptyFeed = e && e.code === 'ERR_XML_MISSED_ELEMENT' && e.message === 'No published versions on GitHub';
-  if (emptyFeed || ['ERR_UPDATER_CHANNEL_FILE_NOT_FOUND', 'ERR_UPDATER_LATEST_VERSION_NOT_FOUND', 'ERR_UPDATER_NO_PUBLISHED_VERSIONS'].includes(e && e.code)) {
+  // GitHub 的 Atom feed 也包含仅有标签的条目；没有正式 Release 时 /releases/latest
+  // 可能返回 406，依赖会把“无法找到正式版本”再包装为 INVALID_RELEASE_FEED。
+  const unpublished = e && e.code === 'ERR_UPDATER_INVALID_RELEASE_FEED' &&
+    String(e.message).includes('Unable to find latest version on GitHub') &&
+    String(e.message).includes('please ensure a production release exists');
+  if (emptyFeed || unpublished || ['ERR_UPDATER_CHANNEL_FILE_NOT_FOUND', 'ERR_UPDATER_LATEST_VERSION_NOT_FOUND', 'ERR_UPDATER_NO_PUBLISHED_VERSIONS'].includes(e && e.code)) {
     return { status: 'manual', message: '发布页尚未提供可验证的自动更新，请从 GitHub Releases 下载新版本手动安装。' };
   }
   return { status: 'error', message: String((e && e.message) || e) };

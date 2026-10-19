@@ -1,4 +1,4 @@
-# 1.0.1 发布审计
+# Windows 发布审计（最终版本 1.0.2）
 
 审计日期：2026-10-19，仓库 `xhc144/zwdzjs`，默认分支 `main`，公开可见性保持不变。
 
@@ -21,7 +21,7 @@
 - 构建一次后验证同一份安装包的安装、主程序版本、注册表、真实渲染与 native bridge、设置中的更新入口、公开 GitHub 更新检查、卸载；先上传草稿资产再发布，拒绝覆盖已发布版本。
 - 修复“版本字符串不同即提示更新”的误判；改用 electron-updater 的版本判断。缺公钥/安全钩子时禁用更新。下载缓存也在发出完成通知、允许安装之前重新校验签名。正确选择 `.exe` 的签名，避免清单先列 ZIP 时匹配错误。
 - 无更新清单时提示手动下载安装。更新按钮只在 Electron 桌面版显示；浏览器没有 native bridge，研究版主动禁用公开更新源，均非发布包丢失。
-- 版本改为 1.0.1，游戏显示版本从 package.json 读取。
+- 版本先设为 1.0.1，首次发布遇到仅有标签时的 GitHub feed 错误后，修复并增至 1.0.2；原标签不改写。游戏显示版本从 package.json 读取。
 
 ## 第三方原版程序
 
@@ -47,3 +47,6 @@
 - 本地首次 `npm ci` 在 Electron Linux 二进制下载时连接被拒绝；改为 `ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci`，在 Linux 完成源码测试，Windows 二进制由 GitHub Windows runner 构建与运行。
 - [CI 39187519836](https://github.com/xhc144/zwdzjs/actions/runs/39187519836)：构建、安装、主程序/注册表版本校验、界面渲染、更新按钮和 native bridge 均成功，但首次真实 GitHub 检查返回 `No published versions on GitHub`，当时未归入“手动安装”状态，测试因此失败。追查依赖发现，完全空的 Atom feed 会先抛 `ERR_XML_MISSED_ELEMENT`，无稳定版本标签时则为 `ERR_UPDATER_NO_PUBLISHED_VERSIONS`；已分别处理，仅把明确的空 feed XML 错误映射为手动安装，其他格式错误仍报错。未把这次失败记为完整 Windows 验证成功。
 - 复查发现 app.asar 路径在 Windows 使用反斜杠；统一分隔符后再做素材目录检查，新增真实 asar 的隔离回归测试，防止检查被路径格式绕过。
+- [CI 39187992576](https://github.com/xhc144/zwdzjs/actions/runs/39187992576) 完整通过 Windows 安装、渲染、native bridge、真实 GitHub 更新入口和卸载。其 artifact 12158288676 已通过现有授权 GitHub 工具下载并验证官方 SHA-256 `22b3cf961aa7aa3cf21e68d18858db40109d699f0bc26bb3b942582537e791b7`；安装器与 x64 主程序格式正确，app.asar 内的主进程、预加载、签名实现和公钥与源码一致。
+- [首次 Release 39188402639](https://github.com/xhc144/zwdzjs/actions/runs/39188402639) 中类型检查、57 测试、打包、安装及界面均成功；标签存在后 GitHub Atom feed 有条目，而 `/releases/latest` 因无正式 Release 返回 HTTP 406，被依赖包装为 `ERR_UPDATER_INVALID_RELEASE_FEED`，发布前更新检查再次失败。已为此真实依赖路径增加回归测试并修复；其他格式错误仍报错。正式私钥和 Authenticode 配置在该工作流中确认为空。
+- 原生 CLI 下载 Actions 临时直链返回 403，使用既有授权的 GitHub 下载工具成功获取并校验同一 artifact，未修改认证。随后创建空的 v1.0.1 草稿（ID 416839028），CLI 对 uploads.github.com 上传资产返回 HTTP 401，草稿资产仍为空；未重新登录、未生成凭据、未修改权限。改由原有 Actions 的现成 GITHUB_TOKEN 发布 1.0.2，继续使用已有 contents:write 权限。
