@@ -50,3 +50,27 @@
 - [CI 39187992576](https://github.com/xhc144/zwdzjs/actions/runs/39187992576) 完整通过 Windows 安装、渲染、native bridge、真实 GitHub 更新入口和卸载。其 artifact 12158288676 已通过现有授权 GitHub 工具下载并验证官方 SHA-256 `22b3cf961aa7aa3cf21e68d18858db40109d699f0bc26bb3b942582537e791b7`；安装器与 x64 主程序格式正确，app.asar 内的主进程、预加载、签名实现和公钥与源码一致。
 - [首次 Release 39188402639](https://github.com/xhc144/zwdzjs/actions/runs/39188402639) 中类型检查、57 测试、打包、安装及界面均成功；标签存在后 GitHub Atom feed 有条目，而 `/releases/latest` 因无正式 Release 返回 HTTP 406，被依赖包装为 `ERR_UPDATER_INVALID_RELEASE_FEED`，发布前更新检查再次失败。已为此真实依赖路径增加回归测试并修复；其他格式错误仍报错。正式私钥和 Authenticode 配置在该工作流中确认为空。
 - 原生 CLI 下载 Actions 临时直链返回 403，使用既有授权的 GitHub 下载工具成功获取并校验同一 artifact，未修改认证。随后创建空的 v1.0.1 草稿（ID 416839028），CLI 对 uploads.github.com 上传资产返回 HTTP 401，草稿资产仍为空；未重新登录、未生成凭据、未修改权限。改由原有 Actions 的现成 GITHUB_TOKEN 发布 1.0.2，继续使用已有 contents:write 权限。
+
+## 最终发布验收与已合并分支恢复记录（2026-10-19）
+
+最终软件源码为 `68144090a7dd54aa8f490bbb15c130d631cf72e9`，原始合并提交为 `66cbf9d9ecc8009df9a9505827aee1c9349088c2`。正式 [v1.0.2 Release](https://github.com/xhc144/zwdzjs/releases/tag/v1.0.2)、[Release 工作流 39188976503](https://github.com/xhc144/zwdzjs/actions/runs/39188976503) 与 [主分支 CI 39188974378](https://github.com/xhc144/zwdzjs/actions/runs/39188974378) 均已成功；58 个测试和 Windows 安装、界面、更新入口、版本、注册表、卸载验证通过。
+
+正式安装 EXE（85,878,684 字节）、便携 ZIP（118,567,794 字节）、blockmap、SHA256SUMS 已匿名下载，均为 HTTP 200，SHA-256 全部匹配。ZIP 完整，主程序为 x64；app.asar 中主进程、预加载、更新校验实现及公钥与发布提交一致，公开包与远端标签源码归档均不含原版游戏程序或素材。未配置生产 Ed25519 私钥及 Authenticode 证书；`latest.yml` 为预期的 404，实际安装版更新检查返回手动安装提示。真实跨版本签名升级仍未验收。
+
+用户最初要求保留分支，随后明确授权只清理 `xhc144/zwdzjs` 已完整合入 `main` 的多余分支。以下清单在执行删除前写入并推送，用于恢复；`claude-lab` 仅只读核对，不清理其分支。
+
+| 待清理远端分支 | 删除前冻结的 tip SHA | 合并依据 |
+| --- | --- | --- |
+| `claude/tender-cerf-k5pm7r` | `87fcad5c67cb2c6fdbaef09229e4a96edd056ed2` | tip 是验收主分支 `6814409` 的祖先，完整历史经 `66cbf9d` 合并 |
+| `codex/release-1.0.1` | `2d92e827d740d2b1320f7ae7f9f9e76c2cb45ae7` | tip 是验收主分支 `6814409` 的祖先，完整历史经 `66cbf9d` 合并 |
+
+删除使用精确 tip 的租约检查，远端分支若被其他写者推进则拒绝删除。保留 `main`、任何未合入分支，以及全部 tags 和 Git 历史。
+
+需要恢复分支名时，原提交仍由 `main` 历史保留，可执行：
+
+```bash
+git push origin 87fcad5c67cb2c6fdbaef09229e4a96edd056ed2:refs/heads/claude/tender-cerf-k5pm7r
+git push origin 2d92e827d740d2b1320f7ae7f9f9e76c2cb45ae7:refs/heads/codex/release-1.0.1
+```
+
+执行状态：已核验并记录恢复点，待确认本记录远端提交成功后删除。
