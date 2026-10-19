@@ -25,14 +25,8 @@ if ($env:CSC_LINK -or $env:AZURE_SIGN_ENDPOINT) {
     Write-Host "Authenticode Valid：$($sig.SignerCertificate.Subject)"
   }
 }
-$app = Start-Process -FilePath $exe -PassThru
-Start-Sleep 10
-$app.Refresh()
-if ($app.HasExited) { throw "程序启动后意外退出 $($app.ExitCode)" }
-if ($app.MainWindowHandle -eq 0) { throw '程序未创建主窗口' }
-Write-Host "启动成功，主窗口：$($app.MainWindowTitle)"
-$null = $app.CloseMainWindow()
-if (-not $app.WaitForExit(15000)) { Stop-Process -Id $app.Id -Force }
+node scripts/test-installed-app.mjs $exe
+if ($LASTEXITCODE) { throw '已安装应用的渲染、原生接口或 GitHub 更新检查失败' }
 Start-Process -FilePath (Join-Path $dir 'Uninstall Prism Wardens.exe') -ArgumentList '/S' -Wait
 for ($i = 0; $i -lt 60 -and (Test-Path $exe); $i++) { Start-Sleep 1 }
 if (Test-Path $exe) { throw '卸载后程序文件仍存在' }

@@ -94,6 +94,7 @@ jobs:
             release/*.zip
             release/*.blockmap
             release/latest.yml
+            release/installed-app.png
       - name: 自动更新端到端测试（临时证书 Authenticode 签名 + Ed25519 更新签名）
         if: github.event_name == 'workflow_dispatch' && inputs.run_signed_update_fixture
         shell: pwsh
