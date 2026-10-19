@@ -9,7 +9,7 @@
 | 分支 | 初始提交 | 内容与合并情况 |
 | --- | --- | --- |
 | `main` | `9d460b5` | 只有第三方原版游戏安装程序，没有本项目的源码或打包工作流 |
-| `claude/tender-cerf-k5pm7r` | `87fcad5` | 比 main 多 28 个提交，尚未合并；完整 TypeScript/Preact/Canvas 游戏、AI/模拟/编辑器/录像、原创画面、经典资源的本地导入、Electron 外壳、Windows NSIS/ZIP、签名更新和测试 |
+| `claude/tender-cerf-k5pm7r` | `87fcad5` | 比 main 多 29 个提交，尚未合并；完整 TypeScript/Preact/Canvas 游戏、AI/模拟/编辑器/录像、原创画面、经典资源的本地导入、Electron 外壳、Windows NSIS/ZIP、签名更新和测试 |
 
 功能分支基于 main 线性开发，无分叉冲突。保留上述全部有效代码与历史，不删除原分支、不重写提交。发布修复在 `codex/release-1.0.1` 准备，Windows CI 通过后再合并主分支并打版本标签。
 
@@ -29,6 +29,7 @@
 
 ## 已运行的验证
 
+- AI 冒烟模拟：4 关 × 2 策略 × 5 次，共 40 局，39 胜，完整生成 JSON 战报。
 - 本地 `npm run typecheck` 通过；`npm test`：6 文件、56 测试通过。
 - `npm run build` 与 `node scripts/check-public-build.mjs` 通过；两份 workflow 可解析，`git diff --check` 通过。
 - Playwright：5 个公开版用例通过，3 个需要原版素材的经典画面用例跳过（未导入原版素材）。覆盖菜单/设置、手动部署、AI 通关及录像、Worker 批量模拟、修改器。

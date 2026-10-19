@@ -82,38 +82,9 @@ jobs:
       - name: 校验安装包内的 app.asar 不含原版素材
         shell: bash
         run: node scripts/check-public-build.mjs release/win-unpacked/resources/app.asar
-      - name: 静默安装 → 校验 → 静默卸载
+      - name: 安装、启动、版本、注册表与卸载验证
         shell: pwsh
-        run: |
-          $setup = Get-ChildItem release -Filter 'PrismWardens-Setup-*.exe' | Select-Object -First 1
-          Write-Host "安装包: $($setup.Name) ($([math]::Round($setup.Length / 1MB, 1)) MB)"
-          $proc = Start-Process -FilePath $setup.FullName -ArgumentList '/S', '/currentuser' -Wait -PassThru
-          Write-Host "安装程序退出码: $($proc.ExitCode)"
-          $dir = Join-Path $env:LOCALAPPDATA 'Programs\Prism Wardens'
-          $exe = Join-Path $dir 'Prism Wardens.exe'
-          # NSIS 会在临时目录里重新启动自身，-Wait 可能早于安装完成返回；杀毒扫描也可能拖慢解压
-          for ($i = 0; $i -lt 300 -and -not (Test-Path $exe); $i++) { Start-Sleep -Seconds 1 }
-          if (-not (Test-Path $exe)) {
-            Write-Host '--- 诊断信息 ---'
-            Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs') -ErrorAction SilentlyContinue | Format-Table Name, LastWriteTime
-            Get-ChildItem 'C:\Program Files' -Filter '*Prism*' -ErrorAction SilentlyContinue | Format-Table FullName
-            Get-Process | Where-Object { $_.ProcessName -match 'Prism|Setup|Un_|nsis' } | Format-Table ProcessName, Id, StartTime
-            Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' -ErrorAction SilentlyContinue | Get-ItemProperty | Where-Object { $_.DisplayName -like '*Prism*' } | Format-List DisplayName, InstallLocation
-            throw "安装失败：找不到 $exe"
-          }
-          $reg = $null
-          for ($i = 0; $i -lt 60 -and -not $reg; $i++) {
-            $reg = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' | Get-ItemProperty | Where-Object { $_.DisplayName -like '*Prism Wardens*' }
-            if (-not $reg) { Start-Sleep -Seconds 1 }
-          }
-          $vi = (Get-Item $exe).VersionInfo
-          Write-Host "已安装: $($vi.ProductName) $($vi.ProductVersion) / $($vi.FileVersion)"
-          if (-not $reg) { throw '未找到卸载注册表项' }
-          Write-Host "卸载项: $($reg.DisplayName) $($reg.DisplayVersion)"
-          Start-Process -FilePath (Join-Path $dir 'Uninstall Prism Wardens.exe') -ArgumentList '/S' -Wait
-          for ($i = 0; $i -lt 60 -and (Test-Path $exe); $i++) { Start-Sleep -Seconds 1 }
-          if (Test-Path $exe) { throw '卸载失败：程序文件仍然存在' }
-          Write-Host '安装与卸载验证通过'
+        run: ./scripts/test-windows-package.ps1
       - name: 上传安装包
         uses: actions/upload-artifact@v4
         with:
